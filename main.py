@@ -136,7 +136,9 @@ class BallSortSolver:
         display_img, _ = self.image_processor.resize_for_display()
         
         if display_img:
-            self.photo = ImageTk.PhotoImage(display_img)
+            # Use CTkImage for proper scaling on HighDPI displays
+            self.photo = ctk.CTkImage(light_image=display_img, dark_image=display_img, 
+                                    size=display_img.size)
             label = ctk.CTkLabel(self.image_frame, image=self.photo, text="")
             label.grid(row=0, column=0, sticky="nsew")
         else:

@@ -31,10 +31,9 @@ class ParameterPanel:
     
     def setup_panel(self):
         """Setup modern parameter panel UI"""
-        # Main panel frame
-        self.panel = ctk.CTkFrame(self.parent, corner_radius=15, width=350)
+        # Main panel frame - Using scrollable frame to fit all content
+        self.panel = ctk.CTkScrollableFrame(self.parent, corner_radius=15, width=350)
         self.panel.grid(row=0, column=1, sticky="nsew", padx=15, pady=15)
-        self.panel.grid_propagate(False)
         
         # Configure grid
         self.panel.grid_columnconfigure(0, weight=1)
@@ -77,7 +76,7 @@ class ParameterPanel:
     def setup_rows_section(self):
         """Setup modern rows configuration section"""
         frame = ctk.CTkFrame(self.panel, corner_radius=10)
-        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=5)
         self.current_row += 1
         
         # Configure frame grid
@@ -163,7 +162,7 @@ class ParameterPanel:
     def setup_crop_section(self):
         """Setup modern crop section"""
         frame = ctk.CTkFrame(self.panel, corner_radius=10)
-        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=5)
         self.current_row += 1
         
         frame.grid_columnconfigure(0, weight=1)
@@ -182,7 +181,7 @@ class ParameterPanel:
     def setup_corner_section(self):
         """Setup modern corner section"""
         frame = ctk.CTkFrame(self.panel, corner_radius=10)
-        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=5)
         self.current_row += 1
         
         frame.grid_columnconfigure(0, weight=1)
@@ -205,7 +204,7 @@ class ParameterPanel:
     def setup_grid_section(self):
         """Setup modern grid section"""
         frame = ctk.CTkFrame(self.panel, corner_radius=10)
-        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=5)
         self.current_row += 1
         
         frame.grid_columnconfigure(0, weight=1)
@@ -267,7 +266,7 @@ class ParameterPanel:
     def setup_analysis_section(self):
         """Setup modern analysis section"""
         frame = ctk.CTkFrame(self.panel, corner_radius=10)
-        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=5)
         self.current_row += 1
         
         frame.grid_columnconfigure(0, weight=1)
@@ -302,7 +301,7 @@ class ParameterPanel:
     def setup_status_section(self):
         """Setup modern status section"""
         frame = ctk.CTkFrame(self.panel, corner_radius=10)
-        frame.grid(row=self.current_row, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=5)
         self.current_row += 1
         
         frame.grid_columnconfigure(0, weight=1)
@@ -312,10 +311,10 @@ class ParameterPanel:
         ctk.CTkLabel(frame, text="📝 État du Processus", 
                     font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, pady=(15, 10))
         
-        # Status textbox
-        self.status_text = ctk.CTkTextbox(frame, height=120, corner_radius=8,
-                                        font=ctk.CTkFont(size=11))
-        self.status_text.grid(row=1, column=0, sticky="nsew", padx=15, pady=5)
+        # Status textbox - Reduced height to fit better
+        self.status_text = ctk.CTkTextbox(frame, height=80, corner_radius=8,
+                                        font=ctk.CTkFont(size=10))
+        self.status_text.grid(row=1, column=0, sticky="ew", padx=15, pady=5)
         
         # Clear button
         clear_btn = ctk.CTkButton(frame, text="🗑️ Effacer tout", 
