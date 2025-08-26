@@ -1,8 +1,7 @@
 """
 Corner selection tool for grid calibration
 """
-import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk
 from PIL import Image, ImageTk, ImageDraw
 
 class CornerSelector:
@@ -30,7 +29,7 @@ class CornerSelector:
         self.corner_points = []
         self.point_ids = []
         
-        self.selector_window = tk.Toplevel(self.parent)
+        self.selector_window = ctk.CTkToplevel(self.parent)
         self.selector_window.title("Sélection des coins")
         self.selector_window.geometry("900x700")
         self.selector_window.grab_set()
@@ -40,40 +39,40 @@ class CornerSelector:
     def setup_selector_ui(self):
         """Setup corner selector UI"""
         # Top frame with instructions and controls
-        top_frame = tk.Frame(self.selector_window)
-        top_frame.pack(fill=tk.X, padx=10, pady=5)
+        top_frame = ctk.CTkFrame(self.selector_window)
+        top_frame.pack(fill="x", padx=10, pady=5)
         
-        instructions = tk.Label(
+        instructions = ctk.CTkLabel(
             top_frame,
             text="Cliquez sur les 4 coins des balles : Haut-Gauche, Haut-Droite, Bas-Gauche, Bas-Droite",
-            font=("Arial", 12)
+            font=ctk.CTkFont(size=12)
         )
         instructions.pack(pady=5)
         
         # Circle size control
-        control_frame = tk.Frame(top_frame)
+        control_frame = ctk.CTkFrame(top_frame)
         control_frame.pack(pady=5)
         
-        tk.Label(control_frame, text="Taille du cercle:").pack(side=tk.LEFT)
+        ctk.CTkLabel(control_frame, text="Taille du cercle:").pack(side="left")
         
-        self.radius_var = tk.IntVar(value=self.circle_radius)
-        radius_scale = tk.Scale(
-            control_frame, from_=5, to=50, orient=tk.HORIZONTAL,
-            variable=self.radius_var, command=self.on_radius_change
+        radius_scale = ctk.CTkSlider(
+            control_frame, from_=5, to=50, number_of_steps=45,
+            command=self.on_radius_change
         )
-        radius_scale.pack(side=tk.LEFT, padx=10)
+        radius_scale.pack(side="left", padx=10)
+        radius_scale.set(self.circle_radius)
         
-        self.radius_label = tk.Label(control_frame, text=f"{self.circle_radius}px")
-        self.radius_label.pack(side=tk.LEFT)
+        self.radius_label = ctk.CTkLabel(control_frame, text=f"{self.circle_radius}px")
+        self.radius_label.pack(side="left")
         
         # Canvas frame
-        canvas_frame = tk.Frame(self.selector_window)
-        canvas_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=5)
+        canvas_frame = ctk.CTkFrame(self.selector_window)
+        canvas_frame.pack(expand=True, fill="both", padx=10, pady=5)
         
-        self.canvas = tk.Canvas(canvas_frame, bg="gray90")
+        self.canvas = ctk.CTkCanvas(canvas_frame)
         
-        h_scroll = tk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
-        v_scroll = tk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        h_scroll = ctk.CTkScrollbar(canvas_frame, orientation="horizontal", command=self.canvas.xview)
+        v_scroll = ctk.CTkScrollbar(canvas_frame, orientation="vertical", command=self.canvas.yview)
         
         self.canvas.configure(xscrollcommand=h_scroll.set, yscrollcommand=v_scroll.set)
         
@@ -91,45 +90,46 @@ class CornerSelector:
         self.canvas.bind("<Button-1>", self.on_canvas_click)
         
         # Status frame
-        status_frame = tk.Frame(self.selector_window)
-        status_frame.pack(fill=tk.X, padx=10, pady=5)
+        status_frame = ctk.CTkFrame(self.selector_window)
+        status_frame.pack(fill="x", padx=10, pady=5)
         
-        self.status_label = tk.Label(
+        self.status_label = ctk.CTkLabel(
             status_frame, 
             text="Points sélectionnés: 0/4",
-            font=("Arial", 12)
+            font=ctk.CTkFont(size=12, weight="bold")
         )
         self.status_label.pack()
         
         # Points list
-        list_frame = tk.Frame(self.selector_window)
-        list_frame.pack(fill=tk.X, padx=10, pady=5)
+        list_frame = ctk.CTkFrame(self.selector_window)
+        list_frame.pack(fill="x", padx=10, pady=5)
         
-        tk.Label(list_frame, text="Points sélectionnés:", font=("Arial", 11, "bold")).pack(anchor=tk.W)
+        ctk.CTkLabel(list_frame, text="Points sélectionnés:", font=ctk.CTkFont(size=11, weight="bold")).pack(anchor="w")
         
-        self.points_listbox = tk.Listbox(list_frame, height=4)
-        self.points_listbox.pack(fill=tk.X, pady=5)
+        self.points_textbox = ctk.CTkTextbox(list_frame, height=100)
+        self.points_textbox.pack(fill="x", pady=5)
         
         # Buttons for point management
-        point_buttons_frame = tk.Frame(list_frame)
-        point_buttons_frame.pack(fill=tk.X)
+        point_buttons_frame = ctk.CTkFrame(list_frame)
+        point_buttons_frame.pack(fill="x")
         
-        tk.Button(point_buttons_frame, text="Supprimer sélectionné", 
-                 command=self.delete_selected_point).pack(side=tk.LEFT, padx=5)
-        
-        tk.Button(point_buttons_frame, text="Effacer tout", 
-                 command=self.clear_all_points).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(point_buttons_frame, text="🗑️ Effacer tout", 
+                     command=self.clear_all_points,
+                     font=ctk.CTkFont(size=12, weight="bold"),
+                     fg_color="#FF6B6B", hover_color="#FF5252").pack(side="left", padx=5)
         
         # Bottom buttons
-        buttons_frame = tk.Frame(self.selector_window)
+        buttons_frame = ctk.CTkFrame(self.selector_window)
         buttons_frame.pack(pady=10)
         
-        self.ok_button = tk.Button(buttons_frame, text="OK", command=self.apply_corners,
-                                  bg="#4CAF50", fg="white", font=("Arial", 12), state=tk.DISABLED)
-        self.ok_button.pack(side=tk.LEFT, padx=5)
+        self.ok_button = ctk.CTkButton(buttons_frame, text="✅ OK", command=self.apply_corners,
+                                      fg_color="#4CAF50", hover_color="#45a049",
+                                      font=ctk.CTkFont(size=12, weight="bold"), height=35, state="disabled")
+        self.ok_button.pack(side="left", padx=5)
         
-        tk.Button(buttons_frame, text="Annuler", command=self.cancel_selection,
-                 bg="#f44336", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(buttons_frame, text="❌ Annuler", command=self.cancel_selection,
+                     fg_color="#f44336", hover_color="#da190b",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack(side="left", padx=5)
     
     def load_image_to_canvas(self):
         """Load image to canvas"""
@@ -152,12 +152,12 @@ class CornerSelector:
         self.photo = ImageTk.PhotoImage(display_image)
         
         self.canvas.configure(scrollregion=(0, 0, display_width, display_height))
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.photo)
     
     def on_radius_change(self, value):
         """Handle radius change"""
         self.circle_radius = int(value)
-        self.radius_label.config(text=f"{self.circle_radius}px")
+        self.radius_label.configure(text=f"{self.circle_radius}px")
         
         # Update visual circles
         self.update_visual_circles()
@@ -229,42 +229,42 @@ class CornerSelector:
     def update_status(self):
         """Update status display"""
         count = len(self.corner_points)
-        self.status_label.config(text=f"Points sélectionnés: {count}/4")
+        self.status_label.configure(text=f"Points sélectionnés: {count}/4")
         
         if count == 4:
-            self.ok_button.config(state=tk.NORMAL)
+            self.ok_button.configure(state="normal")
         else:
-            self.ok_button.config(state=tk.DISABLED)
+            self.ok_button.configure(state="disabled")
     
     def update_points_list(self):
-        """Update points listbox"""
-        self.points_listbox.delete(0, tk.END)
+        """Update points textbox"""
+        self.points_textbox.configure(state="normal")
+        self.points_textbox.delete("0.0", "end")
         
         labels = ["Haut-Gauche", "Haut-Droite", "Bas-Gauche", "Bas-Droite"]
         
         for i, point in enumerate(self.corner_points):
             label = labels[i] if i < len(labels) else f"Point {i+1}"
-            self.points_listbox.insert(tk.END, f"{label}: ({point['x']}, {point['y']})")
+            self.points_textbox.insert("end", f"{label}: ({point['x']}, {point['y']})\n")
+        
+        self.points_textbox.configure(state="disabled")
     
-    def delete_selected_point(self):
-        """Delete selected point from list"""
-        selection = self.points_listbox.curselection()
-        if not selection:
+    def delete_last_point(self):
+        """Delete last added point"""
+        if not self.corner_points:
             return
         
-        index = selection[0]
-        if 0 <= index < len(self.corner_points):
-            # Remove point
-            self.corner_points.pop(index)
-            
-            # Remove visual elements
-            if index < len(self.point_ids):
-                circle_id, center_id = self.point_ids.pop(index)
-                self.canvas.delete(circle_id)
-                self.canvas.delete(center_id)
-            
-            self.update_status()
-            self.update_points_list()
+        # Remove last point
+        self.corner_points.pop()
+        
+        # Remove last visual elements
+        if self.point_ids:
+            circle_id, center_id = self.point_ids.pop()
+            self.canvas.delete(circle_id)
+            self.canvas.delete(center_id)
+        
+        self.update_status()
+        self.update_points_list()
     
     def clear_all_points(self):
         """Clear all points"""

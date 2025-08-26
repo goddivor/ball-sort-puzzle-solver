@@ -1,7 +1,7 @@
 """
 Interactive cropping tool for image processing
 """
-import tkinter as tk
+import customtkinter as ctk
 from PIL import Image, ImageTk, ImageDraw
 
 class CropTool:
@@ -30,7 +30,7 @@ class CropTool:
             self.crop_window.destroy()
         
         self.image = image
-        self.crop_window = tk.Toplevel(self.parent)
+        self.crop_window = ctk.CTkToplevel(self.parent)
         self.crop_window.title("Recadrer l'image")
         self.crop_window.geometry("800x600")
         self.crop_window.grab_set()
@@ -40,22 +40,22 @@ class CropTool:
     def setup_crop_ui(self):
         """Setup crop tool UI"""
         # Instructions
-        instructions = tk.Label(
+        instructions = ctk.CTkLabel(
             self.crop_window,
             text="Glissez pour créer un rectangle de recadrage. Déplacez et redimensionnez selon vos besoins.",
-            font=("Arial", 12)
+            font=ctk.CTkFont(size=12)
         )
         instructions.pack(pady=10)
         
         # Canvas frame
-        canvas_frame = tk.Frame(self.crop_window)
-        canvas_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        canvas_frame = ctk.CTkFrame(self.crop_window)
+        canvas_frame.pack(expand=True, fill="both", padx=10, pady=10)
         
         # Canvas with scrollbars
-        self.canvas = tk.Canvas(canvas_frame, bg="gray90")
+        self.canvas = ctk.CTkCanvas(canvas_frame)
         
-        h_scroll = tk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
-        v_scroll = tk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        h_scroll = ctk.CTkScrollbar(canvas_frame, orientation="horizontal", command=self.canvas.xview)
+        v_scroll = ctk.CTkScrollbar(canvas_frame, orientation="vertical", command=self.canvas.yview)
         
         self.canvas.configure(xscrollcommand=h_scroll.set, yscrollcommand=v_scroll.set)
         
@@ -76,17 +76,20 @@ class CropTool:
         self.canvas.bind("<ButtonRelease-1>", self.on_mouse_release)
         
         # Buttons frame
-        buttons_frame = tk.Frame(self.crop_window)
+        buttons_frame = ctk.CTkFrame(self.crop_window)
         buttons_frame.pack(pady=10)
         
-        tk.Button(buttons_frame, text="OK", command=self.apply_crop,
-                 bg="#4CAF50", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(buttons_frame, text="✅ OK", command=self.apply_crop,
+                     fg_color="#4CAF50", hover_color="#45a049",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=32).pack(side="left", padx=5)
         
-        tk.Button(buttons_frame, text="Annuler", command=self.cancel_crop,
-                 bg="#f44336", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(buttons_frame, text="❌ Annuler", command=self.cancel_crop,
+                     fg_color="#f44336", hover_color="#da190b",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=32).pack(side="left", padx=5)
         
-        tk.Button(buttons_frame, text="Reset", command=self.reset_selection,
-                 bg="#FF9800", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(buttons_frame, text="🔄 Reset", command=self.reset_selection,
+                     fg_color="#FF9800", hover_color="#f57c00",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=32).pack(side="left", padx=5)
     
     def load_image_to_canvas(self):
         """Load image to canvas"""
@@ -110,7 +113,7 @@ class CropTool:
         
         # Configure canvas scroll region
         self.canvas.configure(scrollregion=(0, 0, display_width, display_height))
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.photo)
     
     def on_mouse_press(self, event):
         """Handle mouse press"""

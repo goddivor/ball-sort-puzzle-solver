@@ -1,11 +1,15 @@
 """
-Ball Sort Puzzle Solver - Working Version
+Ball Sort Puzzle Solver - CustomTkinter Modern Version
 """
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import sys
 import os
+
+# Configure CustomTkinter
+ctk.set_appearance_mode("dark")  # Modes: "System", "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
 # Add paths
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
@@ -22,9 +26,10 @@ from corner_selector import CornerSelector
 
 class BallSortSolver:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Ball Sort Puzzle Solver - Working Version")
-        self.root.geometry("1200x800")
+        self.root = ctk.CTk()
+        self.root.title("Ball Sort Puzzle Solver - Modern Edition")
+        self.root.geometry("1400x900")
+        self.root.minsize(1200, 800)
         
         # Core components
         self.image_processor = ImageProcessor()
@@ -40,15 +45,17 @@ class BallSortSolver:
         self.setup_ui()
     
     def setup_ui(self):
-        """Setup UI"""
-        main_container = tk.Frame(self.root)
-        main_container.pack(fill=tk.BOTH, expand=True)
+        """Setup modern UI"""
+        # Configure grid layout
+        self.root.grid_columnconfigure(0, weight=3)  # Image area
+        self.root.grid_columnconfigure(1, weight=1)  # Parameters panel
+        self.root.grid_rowconfigure(0, weight=1)
         
         # Left: Image area
-        self.setup_image_area(main_container)
+        self.setup_image_area()
         
         # Right: Parameters
-        self.parameter_panel = ParameterPanel(main_container)
+        self.parameter_panel = ParameterPanel(self.root)
         self.parameter_panel.set_callbacks(
             self.open_crop_tool,
             self.open_corner_selector,
@@ -68,30 +75,40 @@ class BallSortSolver:
         self.crop_tool = CropTool(self.root, self.on_crop_complete)
         self.corner_selector = CornerSelector(self.root, self.on_corners_complete)
     
-    def setup_image_area(self, parent):
-        """Setup image area"""
-        container = tk.Frame(parent, bg="#f8f8f8")
-        container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    def setup_image_area(self):
+        """Setup modern image area"""
+        container = ctk.CTkFrame(self.root, corner_radius=15)
+        container.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        
+        # Configure grid
+        container.grid_columnconfigure(0, weight=1)
+        container.grid_rowconfigure(2, weight=1)  # Image frame gets most space
         
         # Title
-        title = tk.Label(container, text="Ball Sort Puzzle Solver", 
-                        font=("Arial", 18, "bold"), bg="#f8f8f8")
-        title.pack(pady=10)
+        title = ctk.CTkLabel(container, text="🎯 Ball Sort Puzzle Solver", 
+                           font=ctk.CTkFont(size=24, weight="bold"))
+        title.grid(row=0, column=0, pady=(20, 10), sticky="ew")
         
-        # Upload
-        upload_btn = tk.Button(container, text="Charger Image", 
-                              command=self.upload_image,
-                              font=("Arial", 12), bg="#4CAF50", fg="white",
-                              padx=20, pady=10)
-        upload_btn.pack(pady=10)
+        # Upload button
+        upload_btn = ctk.CTkButton(container, 
+                                 text="📁 Charger Image", 
+                                 command=self.upload_image,
+                                 font=ctk.CTkFont(size=14, weight="bold"),
+                                 height=45,
+                                 corner_radius=10)
+        upload_btn.grid(row=1, column=0, pady=10, padx=20, sticky="ew")
         
-        # Image frame
-        self.image_frame = tk.Frame(container, bg="white", relief=tk.SUNKEN, bd=2)
-        self.image_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        # Image display frame
+        self.image_frame = ctk.CTkFrame(container, corner_radius=10)
+        self.image_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
         
-        # Results
-        self.results_frame = tk.Frame(container)
-        self.results_frame.pack(fill=tk.X, pady=10)
+        # Configure image frame
+        self.image_frame.grid_columnconfigure(0, weight=1)
+        self.image_frame.grid_rowconfigure(0, weight=1)
+        
+        # Results frame
+        self.results_frame = ctk.CTkScrollableFrame(container, height=150, corner_radius=10)
+        self.results_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 20))
     
     def upload_image(self):
         """Upload image"""
@@ -112,20 +129,24 @@ class BallSortSolver:
                 messagebox.showerror("Erreur", f"Erreur: {str(e)}")
     
     def display_current_image(self):
-        """Display image"""
+        """Display image with modern styling"""
         for widget in self.image_frame.winfo_children():
             widget.destroy()
         
         display_img, _ = self.image_processor.resize_for_display()
         
         if display_img:
-            self.photo = ImageTk.PhotoImage(display_img)
-            label = tk.Label(self.image_frame, image=self.photo, bg="white")
-            label.pack(expand=True)
+            # Use CTkImage for proper scaling on HighDPI displays
+            self.photo = ctk.CTkImage(light_image=display_img, dark_image=display_img, 
+                                    size=display_img.size)
+            label = ctk.CTkLabel(self.image_frame, image=self.photo, text="")
+            label.grid(row=0, column=0, sticky="nsew")
         else:
-            label = tk.Label(self.image_frame, text="Aucune image", 
-                           font=("Arial", 14), bg="white", fg="gray")
-            label.pack(expand=True)
+            label = ctk.CTkLabel(self.image_frame, 
+                               text="📷 Aucune image chargée\n\nCliquez sur 'Charger Image' pour commencer", 
+                               font=ctk.CTkFont(size=16),
+                               text_color=("gray60", "gray40"))
+            label.grid(row=0, column=0, sticky="nsew")
     
     def open_crop_tool(self):
         """Open crop tool"""
@@ -251,62 +272,52 @@ class BallSortSolver:
             widget.destroy()
         
         if not color_groups:
-            tk.Label(self.results_frame, text="Aucune balle détectée").pack()
+            ctk.CTkLabel(self.results_frame, text="🔍 Aucune balle détectée").grid(row=0, column=0, pady=10)
             return
         
-        tk.Label(self.results_frame, text="Résultats:", 
-                font=("Arial", 14, "bold")).pack(pady=(0, 10))
+        # Configure results frame grid
+        self.results_frame.grid_columnconfigure(0, weight=1)
+        current_row = 0
+        
+        ctk.CTkLabel(self.results_frame, text="📊 Résultats:", 
+                   font=ctk.CTkFont(size=16, weight="bold")).grid(row=current_row, column=0, pady=(10, 5), sticky="w")
+        current_row += 1
         
         total = 0
         for i, (color, balls) in enumerate(color_groups.items()):
             count = len(balls)
             total += count
             
-            frame = tk.Frame(self.results_frame)
-            frame.pack(fill=tk.X, pady=2)
+            # Simple modern color display for now
+            color_name = self.multi_row_manager.get_color_name(color) if self.multi_row_manager else f"Couleur {i+1}"
+            color_text = f"🔴 {color_name}: {count} balles"
             
-            canvas = tk.Canvas(frame, width=25, height=25)
-            color_hex = f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
-            canvas.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black")
-            canvas.pack(side=tk.LEFT, padx=(0, 10))
-            
-            tk.Label(frame, text=f"Couleur {i+1}: {count} balles").pack(side=tk.LEFT)
+            color_label = ctk.CTkLabel(self.results_frame, text=color_text, 
+                                     font=ctk.CTkFont(size=12))
+            color_label.grid(row=current_row, column=0, sticky="w", padx=10, pady=2)
+            current_row += 1
         
         # Total and comparison with expected
-        total_frame = tk.Frame(self.results_frame)
-        total_frame.pack(pady=(10, 0))
-        
         expected_total = self.grid_generator.get_expected_ball_count()
-        total_text = f"TOTAL: {total} balles"
+        total_text = f"📊 TOTAL: {total} balles"
         
         if expected_total > 0:
             if total == expected_total:
-                total_text += " ✓"
-                color = "#4CAF50"
+                total_text += " ✅"
             else:
-                total_text += f" (attendu: {expected_total})"
-                color = "#FF9800"
-        else:
-            color = "#2196F3"
+                total_text += f" (attendu: {expected_total}) ⚠️"
         
-        tk.Label(total_frame, text=total_text,
-                font=("Arial", 12, "bold"), fg=color).pack()
+        total_label = ctk.CTkLabel(self.results_frame, text=total_text,
+                                 font=ctk.CTkFont(size=14, weight="bold"))
+        total_label.grid(row=current_row, column=0, pady=(10, 5), sticky="w", padx=10)
+        current_row += 1
         
-        # Tube analysis
+        # Simplified tube analysis for modern UI
         if hasattr(self, 'current_grid') and self.current_grid:
-            num_tubes, balls_per_tube = self.parameter_panel.get_tube_parameters()
-            tube_analysis = self.analyze_by_tubes(color_groups, num_tubes)
-            
-            if tube_analysis:
-                tube_frame = tk.Frame(self.results_frame)
-                tube_frame.pack(pady=5)
-                
-                tk.Label(tube_frame, text="Répartition par éprouvette:",
-                        font=("Arial", 10, "bold")).pack()
-                
-                for tube_idx, tube_colors in tube_analysis.items():
-                    tube_text = f"Éprouvette {tube_idx + 1}: {len(tube_colors)} couleurs"
-                    tk.Label(tube_frame, text=tube_text, font=("Arial", 9)).pack()
+            tube_info = ctk.CTkLabel(self.results_frame, 
+                                   text="🧪 Analyse par éprouvettes disponible",
+                                   font=ctk.CTkFont(size=11))
+            tube_info.grid(row=current_row, column=0, pady=5, sticky="w", padx=10)
     
     def analyze_by_tubes(self, color_groups, num_tubes):
         """Analyze color distribution by tubes"""
@@ -591,60 +602,54 @@ class BallSortSolver:
         results = self.multi_row_manager.get_aggregated_results()
         
         # Create new window
-        results_window = tk.Toplevel(self.root)
+        results_window = ctk.CTkToplevel(self.root)
         results_window.title("Résultats Finaux - Ball Sort Puzzle")
         results_window.geometry("800x600")
         results_window.grab_set()
         
-        # Main frame with scrollbar
-        main_frame = tk.Frame(results_window)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        canvas = tk.Canvas(main_frame)
-        scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        # Main scrollable frame
+        scrollable_frame = ctk.CTkScrollableFrame(results_window)
+        scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Title
-        title = tk.Label(scrollable_frame, text="Résultats Finaux", 
-                        font=("Arial", 20, "bold"), fg="#2196F3")
+        title = ctk.CTkLabel(scrollable_frame, text="🏆 Résultats Finaux", 
+                            font=ctk.CTkFont(size=20, weight="bold"),
+                            text_color="#2196F3")
         title.pack(pady=(0, 20))
         
         # Summary stats
-        summary_frame = tk.LabelFrame(scrollable_frame, text="Résumé", font=("Arial", 14, "bold"))
-        summary_frame.pack(fill=tk.X, pady=10)
+        summary_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        summary_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(summary_frame, text="📊 Résumé", 
+                    font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(15, 10))
         
         stats_text = f"""Rangées analysées: {results['completed_rows']}/{results['total_rows']}
 Total éprouvettes: {results['total_tubes']}
 Total balles détectées: {results['total_balls']}"""
         
-        tk.Label(summary_frame, text=stats_text, font=("Arial", 12), 
-                justify=tk.LEFT).pack(padx=10, pady=10)
+        ctk.CTkLabel(summary_frame, text=stats_text, font=ctk.CTkFont(size=12), 
+                    justify="left").pack(padx=10, pady=(0, 15))
         
         # Combined color statistics
         if results.get('combined_colors'):
-            combined_frame = tk.LabelFrame(scrollable_frame, text="Statistiques Globales des Couleurs", 
-                                         font=("Arial", 14, "bold"))
-            combined_frame.pack(fill=tk.X, pady=10)
+            combined_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+            combined_frame.pack(fill="x", pady=10)
+            
+            ctk.CTkLabel(combined_frame, text="🎨 Statistiques Globales des Couleurs",
+                        font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(15, 10))
             
             # Sort colors by total count (descending)
             sorted_colors = sorted(results['combined_colors'].items(), 
                                  key=lambda x: x[1]['total_count'], reverse=True)
             
             for color_key, data in sorted_colors:
-                color_main_frame = tk.Frame(combined_frame)
-                color_main_frame.pack(fill=tk.X, padx=10, pady=5)
+                color_main_frame = ctk.CTkFrame(combined_frame, corner_radius=8)
+                color_main_frame.pack(fill="x", padx=10, pady=5)
                 
                 # Main color info
-                color_header = tk.Frame(color_main_frame)
-                color_header.pack(fill=tk.X)
+                color_header = ctk.CTkFrame(color_main_frame)
+                color_header.pack(fill="x", padx=10, pady=10)
                 
                 # Color sample
                 try:
@@ -652,20 +657,21 @@ Total balles détectées: {results['total_balls']}"""
                     color_rgb = data['representative_color']
                     color_name = data['color_name']
                     
-                    canvas_color = tk.Canvas(color_header, width=35, height=35)
+                    canvas_color = ctk.CTkCanvas(color_header, width=35, height=35)
                     color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
                     canvas_color.create_rectangle(0, 0, 35, 35, fill=color_hex, outline="black", width=2)
-                    canvas_color.pack(side=tk.LEFT, padx=(0, 15))
+                    canvas_color.pack(side="left", padx=(0, 15))
                     
                     # Total count with color name
-                    total_label = tk.Label(color_header, 
-                                         text=f"{color_name}: {data['total_count']} balles au total",
-                                         font=("Arial", 12, "bold"), fg="#2196F3")
-                    total_label.pack(side=tk.LEFT, anchor=tk.W)
+                    total_label = ctk.CTkLabel(color_header, 
+                                              text=f"{color_name}: {data['total_count']} balles au total",
+                                              font=ctk.CTkFont(size=12, weight="bold"),
+                                              text_color="#2196F3")
+                    total_label.pack(side="left", anchor="w")
                     
                     # Row breakdown
-                    breakdown_frame = tk.Frame(color_main_frame)
-                    breakdown_frame.pack(fill=tk.X, padx=50, pady=(5, 0))
+                    breakdown_frame = ctk.CTkFrame(color_main_frame)
+                    breakdown_frame.pack(fill="x", padx=10, pady=(5, 10))
                     
                     breakdown_text = "Répartition: "
                     row_details = []
@@ -673,24 +679,26 @@ Total balles détectées: {results['total_balls']}"""
                         row_details.append(f"{row}: {count}")
                     breakdown_text += " | ".join(row_details)
                     
-                    tk.Label(breakdown_frame, text=breakdown_text, 
-                           font=("Arial", 10), fg="#666666").pack(anchor=tk.W)
+                    ctk.CTkLabel(breakdown_frame, text=breakdown_text, 
+                                font=ctk.CTkFont(size=10), text_color="#666666").pack(anchor="w", padx=10, pady=5)
                     
                 except Exception as e:
                     # Fallback if color parsing fails
-                    tk.Label(color_header, 
-                           text=f"Couleur inconnue: {data['total_count']} balles au total",
-                           font=("Arial", 12, "bold")).pack()
+                    ctk.CTkLabel(color_header, 
+                                text=f"Couleur inconnue: {data['total_count']} balles au total",
+                                font=ctk.CTkFont(size=12, weight="bold")).pack()
         
         # Separator
-        separator = tk.Frame(scrollable_frame, height=2, bg="#ddd")
-        separator.pack(fill=tk.X, pady=15)
+        separator = ctk.CTkFrame(scrollable_frame, height=2)
+        separator.pack(fill="x", pady=15)
         
         # Color details by row
         if results['colors_by_row']:
-            colors_frame = tk.LabelFrame(scrollable_frame, text="Détail par Rangée", 
-                                       font=("Arial", 14, "bold"))
-            colors_frame.pack(fill=tk.X, pady=10)
+            colors_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+            colors_frame.pack(fill="x", pady=10)
+            
+            ctk.CTkLabel(colors_frame, text="📋 Détail par Rangée",
+                        font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(15, 10))
             
             # Group by row
             rows_colors = {}
@@ -701,40 +709,37 @@ Total balles détectées: {results['total_balls']}"""
                 rows_colors[row_info].append((color, len(balls)))
             
             for row_info, colors in rows_colors.items():
-                row_frame = tk.Frame(colors_frame)
-                row_frame.pack(fill=tk.X, padx=10, pady=5)
+                row_frame = ctk.CTkFrame(colors_frame, corner_radius=8)
+                row_frame.pack(fill="x", padx=10, pady=5)
                 
-                tk.Label(row_frame, text=f"{row_info}:", font=("Arial", 12, "bold")).pack(anchor=tk.W)
+                ctk.CTkLabel(row_frame, text=f"{row_info}:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
                 
-                colors_grid = tk.Frame(row_frame)
-                colors_grid.pack(fill=tk.X, padx=20)
+                colors_grid = ctk.CTkFrame(row_frame)
+                colors_grid.pack(fill="x", padx=20, pady=(0, 10))
                 
                 for i, (color, count) in enumerate(colors):
-                    color_item = tk.Frame(colors_grid)
-                    color_item.pack(fill=tk.X, pady=2)
+                    color_item = ctk.CTkFrame(colors_grid)
+                    color_item.pack(fill="x", pady=2)
                     
                     # Color sample
                     try:
                         color_rgb = eval(color) if color.startswith('(') else (128, 128, 128)
-                        canvas_color = tk.Canvas(color_item, width=25, height=25)
+                        canvas_color = ctk.CTkCanvas(color_item, width=25, height=25)
                         color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
                         canvas_color.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black")
-                        canvas_color.pack(side=tk.LEFT, padx=(0, 10))
+                        canvas_color.pack(side="left", padx=(10, 10))
                         
-                        tk.Label(color_item, text=f"Couleur {i+1}: {count} balles").pack(side=tk.LEFT)
+                        ctk.CTkLabel(color_item, text=f"Couleur {i+1}: {count} balles").pack(side="left", pady=5)
                     except:
-                        tk.Label(color_item, text=f"Couleur {i+1}: {count} balles").pack()
+                        ctk.CTkLabel(color_item, text=f"Couleur {i+1}: {count} balles").pack(pady=5)
         
         # Close button
-        close_frame = tk.Frame(scrollable_frame)
+        close_frame = ctk.CTkFrame(scrollable_frame)
         close_frame.pack(pady=20)
         
-        tk.Button(close_frame, text="Fermer", command=results_window.destroy,
-                 bg="#f44336", fg="white", font=("Arial", 12)).pack()
-        
-        # Pack scrollbar elements
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        ctk.CTkButton(close_frame, text="❌ Fermer", command=results_window.destroy,
+                     fg_color="#f44336", hover_color="#da190b",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack()
     
     def on_tube_params_changed(self):
         """Called when tube parameters change in UI"""
@@ -755,35 +760,26 @@ Total balles détectées: {results['total_balls']}"""
             return
         
         # Create new window
-        results_window = tk.Toplevel(self.root)
+        results_window = ctk.CTkToplevel(self.root)
         results_window.title("Résultats - Ball Sort Puzzle")
         results_window.geometry("600x500")
         results_window.grab_set()
         
-        # Main frame with scrollbar
-        main_frame = tk.Frame(results_window)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        canvas = tk.Canvas(main_frame)
-        scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        # Main scrollable frame
+        scrollable_frame = ctk.CTkScrollableFrame(results_window)
+        scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Title
-        title = tk.Label(scrollable_frame, text="Résultats de l'Analyse", 
-                        font=("Arial", 18, "bold"), fg="#2196F3")
+        title = ctk.CTkLabel(scrollable_frame, text="📊 Résultats de l'Analyse", 
+                            font=ctk.CTkFont(size=18, weight="bold"), text_color="#2196F3")
         title.pack(pady=(0, 15))
         
         # Summary stats
-        summary_frame = tk.LabelFrame(scrollable_frame, text="Résumé", font=("Arial", 12, "bold"))
-        summary_frame.pack(fill=tk.X, pady=10)
+        summary_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        summary_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(summary_frame, text="📊 Résumé", 
+                    font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 10))
         
         total_balls = sum(len(balls) for balls in row_data['colors'].values())
         total_tubes = row_data['num_tubes']
@@ -793,48 +789,52 @@ Total balles détectées: {results['total_balls']}"""
 Balles détectées: {total_balls}
 Couleurs différentes: {total_colors}"""
         
-        tk.Label(summary_frame, text=stats_text, font=("Arial", 11), 
-                justify=tk.LEFT).pack(padx=10, pady=10)
+        ctk.CTkLabel(summary_frame, text=stats_text, font=ctk.CTkFont(size=11), 
+                    justify="left").pack(padx=10, pady=(0, 15))
         
         # Colors detail
-        colors_frame = tk.LabelFrame(scrollable_frame, text="Détail des Couleurs", 
-                                   font=("Arial", 12, "bold"))
-        colors_frame.pack(fill=tk.X, pady=10)
+        colors_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        colors_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(colors_frame, text="🎨 Détail des Couleurs",
+                    font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 10))
         
         # Sort colors by count
         sorted_colors = sorted(row_data['colors'].items(), 
                              key=lambda x: len(x[1]), reverse=True)
         
         for i, (color, balls) in enumerate(sorted_colors):
-            color_frame = tk.Frame(colors_frame)
-            color_frame.pack(fill=tk.X, padx=10, pady=5)
+            color_frame = ctk.CTkFrame(colors_frame, corner_radius=8)
+            color_frame.pack(fill="x", padx=10, pady=5)
             
             # Color sample
             try:
                 color_rgb = color
                 color_name = self.multi_row_manager.get_color_name(color_rgb)
                 
-                canvas_color = tk.Canvas(color_frame, width=30, height=30)
+                canvas_color = ctk.CTkCanvas(color_frame, width=30, height=30)
                 color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
                 canvas_color.create_rectangle(0, 0, 30, 30, fill=color_hex, outline="black", width=2)
-                canvas_color.pack(side=tk.LEFT, padx=(0, 15))
+                canvas_color.pack(side="left", padx=(15, 15))
                 
                 # Color info
-                info_label = tk.Label(color_frame, 
-                                    text=f"{color_name}: {len(balls)} balles",
-                                    font=("Arial", 11, "bold"))
-                info_label.pack(side=tk.LEFT, anchor=tk.W)
+                info_label = ctk.CTkLabel(color_frame, 
+                                         text=f"{color_name}: {len(balls)} balles",
+                                         font=ctk.CTkFont(size=11, weight="bold"))
+                info_label.pack(side="left", anchor="w", pady=10)
                 
             except Exception as e:
-                tk.Label(color_frame, 
-                       text=f"Couleur {i+1}: {len(balls)} balles",
-                       font=("Arial", 11)).pack()
+                ctk.CTkLabel(color_frame, 
+                            text=f"Couleur {i+1}: {len(balls)} balles",
+                            font=ctk.CTkFont(size=11)).pack(pady=10)
         
         # Expected vs actual
         expected_total = total_tubes * row_data['balls_per_tube']
-        comparison_frame = tk.LabelFrame(scrollable_frame, text="Comparaison", 
-                                       font=("Arial", 12, "bold"))
-        comparison_frame.pack(fill=tk.X, pady=10)
+        comparison_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        comparison_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(comparison_frame, text="⚖️ Comparaison",
+                    font=ctk.CTkFont(size=12, weight="bold")).pack(pady=(15, 10))
         
         if total_balls == expected_total:
             comparison_text = f"✅ Parfait ! {total_balls}/{expected_total} balles détectées"
@@ -843,19 +843,17 @@ Couleurs différentes: {total_colors}"""
             comparison_text = f"⚠️ {total_balls}/{expected_total} balles détectées"
             comparison_color = "#FF9800"
         
-        tk.Label(comparison_frame, text=comparison_text, 
-               font=("Arial", 11, "bold"), fg=comparison_color).pack(padx=10, pady=10)
+        ctk.CTkLabel(comparison_frame, text=comparison_text, 
+                    font=ctk.CTkFont(size=11, weight="bold"),
+                    text_color=comparison_color).pack(padx=10, pady=(0, 15))
         
         # Close button
-        close_frame = tk.Frame(scrollable_frame)
+        close_frame = ctk.CTkFrame(scrollable_frame)
         close_frame.pack(pady=15)
         
-        tk.Button(close_frame, text="Fermer", command=results_window.destroy,
-                 bg="#f44336", fg="white", font=("Arial", 12)).pack()
-        
-        # Pack scrollbar elements
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        ctk.CTkButton(close_frame, text="❌ Fermer", command=results_window.destroy,
+                     fg_color="#f44336", hover_color="#da190b",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack()
     
     def display_aggregated_results(self):
         """Display aggregated results from all rows"""
