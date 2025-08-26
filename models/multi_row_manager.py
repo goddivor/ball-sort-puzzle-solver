@@ -129,29 +129,126 @@ class MultiRowManager:
         """Check if all rows are completed"""
         return self.get_all_completed_rows() == self.num_rows
     
+    def get_color_name(self, rgb_color):
+        """Get human-readable name for RGB color"""
+        try:
+            r, g, b = rgb_color
+        except:
+            return "Couleur inconnue"
+        
+        # Define color ranges with names
+        color_ranges = [
+            ((200, 255), (0, 50), (0, 50), "Rouge"),
+            ((0, 50), (200, 255), (0, 50), "Vert"),
+            ((0, 50), (0, 50), (200, 255), "Bleu"),
+            ((200, 255), (200, 255), (0, 100), "Jaune"),
+            ((200, 255), (0, 100), (200, 255), "Magenta"),
+            ((0, 100), (200, 255), (200, 255), "Cyan"),
+            ((200, 255), (100, 200), (0, 100), "Orange"),
+            ((100, 200), (0, 100), (200, 255), "Violet"),
+            ((100, 200), (50, 150), (0, 100), "Marron"),
+            ((180, 255), (180, 255), (180, 255), "Blanc"),
+            ((0, 80), (0, 80), (0, 80), "Noir"),
+            ((100, 180), (100, 180), (100, 180), "Gris"),
+        ]
+        
+        # Find best match
+        for r_range, g_range, b_range, name in color_ranges:
+            if (r_range[0] <= r <= r_range[1] and 
+                g_range[0] <= g <= g_range[1] and 
+                b_range[0] <= b <= b_range[1]):
+                return name
+        
+        # Default fallback
+        return f"Couleur ({r},{g},{b})"
+    
+    def color_distance(self, color1, color2):
+        """Calculate Euclidean distance between two RGB colors"""
+        try:
+            r1, g1, b1 = color1
+            r2, g2, b2 = color2
+            return ((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2) ** 0.5
+        except:
+            return float('inf')
+    
+    def group_similar_colors(self, all_row_colors, tolerance=40):
+        """Group similar colors across all rows with tolerance"""
+        color_groups = []
+        
+        for row_idx, row_data in all_row_colors.items():
+            for color, balls in row_data.items():
+                # Try to find existing group for this color
+                found_group = None
+                for group in color_groups:
+                    if self.color_distance(color, group['representative_color']) <= tolerance:
+                        found_group = group
+                        break
+                
+                if found_group:
+                    # Add to existing group
+                    found_group['total_count'] += len(balls)
+                    found_group['rows'][f"R{row_idx+1}"] = len(balls)
+                    found_group['all_balls'].extend(balls)
+                    
+                    # Update representative color (average)
+                    total_balls = len(found_group['all_balls'])
+                    if total_balls > 0:
+                        avg_r = sum(ball.get('color', color)[0] if isinstance(ball.get('color', color), tuple) else color[0] for ball in found_group['all_balls']) / total_balls
+                        avg_g = sum(ball.get('color', color)[1] if isinstance(ball.get('color', color), tuple) else color[1] for ball in found_group['all_balls']) / total_balls
+                        avg_b = sum(ball.get('color', color)[2] if isinstance(ball.get('color', color), tuple) else color[2] for ball in found_group['all_balls']) / total_balls
+                        found_group['representative_color'] = (int(avg_r), int(avg_g), int(avg_b))
+                else:
+                    # Create new group
+                    color_groups.append({
+                        'representative_color': color,
+                        'color_name': self.get_color_name(color),
+                        'total_count': len(balls),
+                        'rows': {f"R{row_idx+1}": len(balls)},
+                        'all_balls': balls.copy()
+                    })
+        
+        return color_groups
+    
     def get_aggregated_results(self):
         """Get aggregated results from all rows"""
         total_balls = 0
         all_colors = {}
         total_tubes = 0
         
-        # Aggregate data from all completed rows
+        # Collect all row colors
+        all_row_colors = {}
         for row_idx, row_data in self.rows_data.items():
             if not row_data['completed']:
                 continue
             
             total_tubes += row_data['num_tubes']
+            all_row_colors[row_idx] = row_data['colors']
             
-            # Add colors with row prefix
+            # Add colors with row prefix for backward compatibility
             for color, balls in row_data['colors'].items():
                 color_key = f"R{row_idx+1}_{color}"
                 all_colors[color_key] = balls
                 total_balls += len(balls)
         
+        # Group similar colors with tolerance
+        combined_colors_groups = self.group_similar_colors(all_row_colors)
+        
+        # Convert to dictionary format
+        combined_colors = {}
+        for i, group in enumerate(combined_colors_groups):
+            key = f"{group['color_name']}_{group['representative_color']}"
+            combined_colors[key] = {
+                'representative_color': group['representative_color'],
+                'color_name': group['color_name'],
+                'total_count': group['total_count'],
+                'rows': group['rows']
+            }
+        
         return {
             'total_balls': total_balls,
             'total_tubes': total_tubes,
             'colors_by_row': all_colors,
+            'combined_colors': combined_colors,
             'completed_rows': self.get_all_completed_rows(),
             'total_rows': self.num_rows
         }

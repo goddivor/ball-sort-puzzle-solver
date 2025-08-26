@@ -619,9 +619,67 @@ Total balles détectées: {results['total_balls']}"""
         tk.Label(summary_frame, text=stats_text, font=("Arial", 12), 
                 justify=tk.LEFT).pack(padx=10, pady=10)
         
+        # Combined color statistics
+        if results.get('combined_colors'):
+            combined_frame = tk.LabelFrame(scrollable_frame, text="Statistiques Globales des Couleurs", 
+                                         font=("Arial", 14, "bold"))
+            combined_frame.pack(fill=tk.X, pady=10)
+            
+            # Sort colors by total count (descending)
+            sorted_colors = sorted(results['combined_colors'].items(), 
+                                 key=lambda x: x[1]['total_count'], reverse=True)
+            
+            for color_key, data in sorted_colors:
+                color_main_frame = tk.Frame(combined_frame)
+                color_main_frame.pack(fill=tk.X, padx=10, pady=5)
+                
+                # Main color info
+                color_header = tk.Frame(color_main_frame)
+                color_header.pack(fill=tk.X)
+                
+                # Color sample
+                try:
+                    # Get representative color from data
+                    color_rgb = data['representative_color']
+                    color_name = data['color_name']
+                    
+                    canvas_color = tk.Canvas(color_header, width=35, height=35)
+                    color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
+                    canvas_color.create_rectangle(0, 0, 35, 35, fill=color_hex, outline="black", width=2)
+                    canvas_color.pack(side=tk.LEFT, padx=(0, 15))
+                    
+                    # Total count with color name
+                    total_label = tk.Label(color_header, 
+                                         text=f"{color_name}: {data['total_count']} balles au total",
+                                         font=("Arial", 12, "bold"), fg="#2196F3")
+                    total_label.pack(side=tk.LEFT, anchor=tk.W)
+                    
+                    # Row breakdown
+                    breakdown_frame = tk.Frame(color_main_frame)
+                    breakdown_frame.pack(fill=tk.X, padx=50, pady=(5, 0))
+                    
+                    breakdown_text = "Répartition: "
+                    row_details = []
+                    for row, count in data['rows'].items():
+                        row_details.append(f"{row}: {count}")
+                    breakdown_text += " | ".join(row_details)
+                    
+                    tk.Label(breakdown_frame, text=breakdown_text, 
+                           font=("Arial", 10), fg="#666666").pack(anchor=tk.W)
+                    
+                except Exception as e:
+                    # Fallback if color parsing fails
+                    tk.Label(color_header, 
+                           text=f"Couleur inconnue: {data['total_count']} balles au total",
+                           font=("Arial", 12, "bold")).pack()
+        
+        # Separator
+        separator = tk.Frame(scrollable_frame, height=2, bg="#ddd")
+        separator.pack(fill=tk.X, pady=15)
+        
         # Color details by row
         if results['colors_by_row']:
-            colors_frame = tk.LabelFrame(scrollable_frame, text="Détail des Couleurs", 
+            colors_frame = tk.LabelFrame(scrollable_frame, text="Détail par Rangée", 
                                        font=("Arial", 14, "bold"))
             colors_frame.pack(fill=tk.X, pady=10)
             
@@ -649,9 +707,9 @@ Total balles détectées: {results['total_balls']}"""
                     # Color sample
                     try:
                         color_rgb = eval(color) if color.startswith('(') else (128, 128, 128)
-                        canvas_color = tk.Canvas(color_item, width=30, height=30)
+                        canvas_color = tk.Canvas(color_item, width=25, height=25)
                         color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
-                        canvas_color.create_rectangle(0, 0, 30, 30, fill=color_hex, outline="black")
+                        canvas_color.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black")
                         canvas_color.pack(side=tk.LEFT, padx=(0, 10))
                         
                         tk.Label(color_item, text=f"Couleur {i+1}: {count} balles").pack(side=tk.LEFT)
