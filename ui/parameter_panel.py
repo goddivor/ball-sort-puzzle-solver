@@ -439,7 +439,7 @@ class ParameterPanel:
     
     def update_expected_total(self):
         total = self.num_tubes * self.balls_per_tube
-        self.expected_label.config(text=f"Total attendu: {total}")
+        self.expected_label.configure(text=f"Total attendu: {total}")
     
     def clear_all(self):
         self.update_corners_status(0)
