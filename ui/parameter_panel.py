@@ -365,13 +365,20 @@ class ParameterPanel:
         else:
             self.prev_button.config(state=tk.NORMAL)
         
-        # Next button
+        # Next and Finish buttons
         if is_last_row:
+            # Hide next button on last row
             self.next_button.pack_forget()
+            # Show finish button if conditions are met
             if can_finish:
                 self.finish_button.pack(side=tk.RIGHT, padx=5)
+                self.finish_button.config(state=tk.NORMAL)
+            else:
+                self.finish_button.pack_forget()
         else:
+            # Hide finish button on non-last rows
             self.finish_button.pack_forget()
+            # Show next button
             self.next_button.pack(side=tk.RIGHT, padx=5)
             self.next_button.config(state=tk.NORMAL)
     
@@ -379,7 +386,7 @@ class ParameterPanel:
         if total_rows > 1:
             self.progress_label.config(text=f"Rangée {current_row}/{total_rows}")
         else:
-            self.progress_label.config(text="")
+            self.progress_label.config(text=f"Rangée {current_row}/1")
     
     def enable_multi_row_mode(self, enabled=True):
         """Enable or disable multi-row specific controls"""

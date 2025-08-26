@@ -238,6 +238,8 @@ class BallSortSolver:
                 grid_matrix = self.create_grid_matrix()
                 color_matrix = self.create_color_matrix(color_groups)
                 self.multi_row_manager.set_current_row_matrices(grid_matrix, color_matrix)
+                # Update UI to show "Terminer" button if on last row
+                self.update_multi_row_ui()
             
         except Exception as e:
             messagebox.showerror("Erreur", str(e))
@@ -335,12 +337,17 @@ class BallSortSolver:
         """Start multi-row configuration process"""
         num_rows = self.parameter_panel.get_num_rows()
         self.multi_row_manager.set_num_rows(num_rows)
-        self.is_multi_row_mode = num_rows > 1
+        # Always enable multi-row mode when using configuration
+        self.is_multi_row_mode = True
         
-        if self.is_multi_row_mode:
-            self.parameter_panel.show_navigation(True)
-            self.update_multi_row_ui()
+        # Show navigation for all configurations (even single row)
+        self.parameter_panel.show_navigation(True)
+        self.update_multi_row_ui()
+        
+        if num_rows > 1:
             self.parameter_panel.add_status_message(f"Mode multi-rangées: {num_rows} rangées")
+        else:
+            self.parameter_panel.add_status_message("Mode configuration: 1 rangée")
         
         # Enable crop button for first row
         self.parameter_panel.enable_crop_button(True)
