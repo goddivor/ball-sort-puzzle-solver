@@ -1,7 +1,7 @@
 """
-Simplified parameter panel for ball detection configuration
+Modern parameter panel for ball detection configuration - CustomTkinter
 """
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk
 
 class ParameterPanel:
@@ -30,24 +30,31 @@ class ParameterPanel:
         self.setup_panel()
     
     def setup_panel(self):
-        """Setup parameter panel UI"""
+        """Setup modern parameter panel UI"""
         # Main panel frame
-        self.panel = tk.Frame(self.parent, bg="#f0f0f0", width=280)
-        self.panel.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
-        self.panel.pack_propagate(False)
+        self.panel = ctk.CTkFrame(self.parent, corner_radius=15, width=350)
+        self.panel.grid(row=0, column=1, sticky="nsew", padx=15, pady=15)
+        self.panel.grid_propagate(False)
+        
+        # Configure grid
+        self.panel.grid_columnconfigure(0, weight=1)
         
         # Title
-        title = tk.Label(self.panel, text="Paramètres de Détection", 
-                        font=("Arial", 14, "bold"), bg="#f0f0f0")
-        title.pack(pady=10)
+        title = ctk.CTkLabel(self.panel, text="⚙️ Paramètres de Détection", 
+                           font=ctk.CTkFont(size=20, weight="bold"))
+        title.grid(row=0, column=0, pady=(20, 15), sticky="ew")
+        
+        # Track current row for grid layout
+        self.current_row = 1
         
         # Step 0: Rows configuration
         self.setup_rows_section()
         
         # Multi-row progress
-        self.progress_label = tk.Label(self.panel, text="", 
-                                     font=("Arial", 12, "bold"), bg="#f0f0f0", fg="#2196F3")
-        self.progress_label.pack(pady=5)
+        self.progress_label = ctk.CTkLabel(self.panel, text="", 
+                                         font=ctk.CTkFont(size=14, weight="bold"))
+        self.progress_label.grid(row=self.current_row, column=0, pady=10, sticky="ew")
+        self.current_row += 1
         
         # Step 1: Crop
         self.setup_crop_section()
@@ -68,151 +75,255 @@ class ParameterPanel:
         self.setup_status_section()
     
     def setup_rows_section(self):
-        """Setup rows configuration section"""
-        frame = tk.LabelFrame(self.panel, text="0. Configuration", bg="#f0f0f0")
-        frame.pack(fill=tk.X, padx=10, pady=5)
+        """Setup modern rows configuration section"""
+        frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        self.current_row += 1
+        
+        # Configure frame grid
+        frame.grid_columnconfigure(0, weight=1)
+        
+        # Section title
+        section_title = ctk.CTkLabel(frame, text="🔧 Configuration", 
+                                   font=ctk.CTkFont(size=16, weight="bold"))
+        section_title.grid(row=0, column=0, pady=(15, 10), sticky="ew")
         
         # Number of rows
-        rows_frame = tk.Frame(frame, bg="#f0f0f0")
-        rows_frame.pack(fill=tk.X, pady=2)
+        rows_frame = ctk.CTkFrame(frame)
+        rows_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=5)
+        rows_frame.grid_columnconfigure(0, weight=1)
         
-        tk.Label(rows_frame, text="Nb rangées:", bg="#f0f0f0").pack(side=tk.LEFT)
-        self.rows_var = tk.IntVar(value=self.num_rows)
-        rows_spinbox = tk.Spinbox(rows_frame, from_=1, to=5, width=5,
-                                 textvariable=self.rows_var, command=self.on_rows_change)
-        rows_spinbox.pack(side=tk.RIGHT)
+        ctk.CTkLabel(rows_frame, text="Nombre de rangées:", 
+                    font=ctk.CTkFont(size=13)).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        
+        self.rows_var = ctk.IntVar(value=self.num_rows)
+        rows_spinbox = ctk.CTkOptionMenu(rows_frame, values=["1", "2", "3", "4", "5"],
+                                       command=self.on_rows_change_menu,
+                                       variable=self.rows_var)
+        rows_spinbox.grid(row=0, column=1, padx=10, pady=10, sticky="e")
+        rows_spinbox.set(str(self.num_rows))
         
         # Start button
-        self.start_button = tk.Button(frame, text="Démarrer Configuration", 
-                                     command=self.request_start_configuration,
-                                     bg="#673AB7", fg="white")
-        self.start_button.pack(pady=5)
-        self.start_button.config(state=tk.DISABLED)
+        self.start_button = ctk.CTkButton(frame, text="🚀 Démarrer Configuration", 
+                                        command=self.request_start_configuration,
+                                        font=ctk.CTkFont(size=14, weight="bold"),
+                                        height=35,
+                                        state="disabled")
+        self.start_button.grid(row=2, column=0, pady=15, padx=15, sticky="ew")
     
     def setup_navigation_section(self):
-        """Setup navigation section for multi-row"""
-        self.nav_frame = tk.LabelFrame(self.panel, text="Navigation", bg="#f0f0f0")
-        self.nav_frame.pack(fill=tk.X, padx=10, pady=5)
-        self.nav_frame.pack_forget()  # Hidden by default
+        """Setup modern navigation section for multi-row"""
+        self.nav_frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        self.nav_frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        self.nav_frame.grid_remove()  # Hidden by default
+        self.current_row += 1
         
-        nav_buttons = tk.Frame(self.nav_frame, bg="#f0f0f0")
-        nav_buttons.pack(fill=tk.X, pady=5)
+        self.nav_frame.grid_columnconfigure(0, weight=1)
+        self.nav_frame.grid_columnconfigure(1, weight=1)
+        self.nav_frame.grid_columnconfigure(2, weight=1)
         
-        self.prev_button = tk.Button(nav_buttons, text="← Précédent", 
-                                    command=self.request_previous_row,
-                                    bg="#FF9800", fg="white")
-        self.prev_button.pack(side=tk.LEFT, padx=5)
+        # Section title
+        ctk.CTkLabel(self.nav_frame, text="🧭 Navigation", 
+                    font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, columnspan=3, pady=(15, 10))
         
-        self.next_button = tk.Button(nav_buttons, text="Suivant →", 
-                                    command=self.request_next_row,
-                                    bg="#4CAF50", fg="white")
-        self.next_button.pack(side=tk.RIGHT, padx=5)
+        # Navigation buttons frame
+        nav_buttons = ctk.CTkFrame(self.nav_frame)
+        nav_buttons.grid(row=1, column=0, columnspan=3, sticky="ew", padx=15, pady=(5, 15))
+        nav_buttons.grid_columnconfigure(0, weight=1)
+        nav_buttons.grid_columnconfigure(1, weight=1)
+        nav_buttons.grid_columnconfigure(2, weight=1)
         
-        self.finish_button = tk.Button(nav_buttons, text="Terminer", 
-                                      command=self.request_finish_all_rows,
-                                      bg="#E91E63", fg="white")
-        self.finish_button.pack(side=tk.RIGHT, padx=5)
-        self.finish_button.pack_forget()  # Hidden initially
+        self.prev_button = ctk.CTkButton(nav_buttons, text="← Précédent", 
+                                       command=self.request_previous_row,
+                                       font=ctk.CTkFont(size=12, weight="bold"),
+                                       fg_color=("orange", "darkorange"))
+        self.prev_button.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        
+        self.next_button = ctk.CTkButton(nav_buttons, text="Suivant →", 
+                                       command=self.request_next_row,
+                                       font=ctk.CTkFont(size=12, weight="bold"),
+                                       fg_color=("green", "darkgreen"))
+        self.next_button.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+        
+        self.finish_button = ctk.CTkButton(nav_buttons, text="🏁 Terminer", 
+                                         command=self.request_finish_all_rows,
+                                         font=ctk.CTkFont(size=12, weight="bold"),
+                                         fg_color=("purple", "darkmagenta"))
+        self.finish_button.grid(row=0, column=2, padx=5, pady=10, sticky="ew")
+        self.finish_button.grid_remove()  # Hidden initially
         
         # Single row results button
-        self.single_results_button = tk.Button(nav_buttons, text="Voir Résultats", 
-                                             command=self.request_single_row_results,
-                                             bg="#4CAF50", fg="white")
-        self.single_results_button.pack(side=tk.RIGHT, padx=5)
-        self.single_results_button.pack_forget()  # Hidden initially
+        self.single_results_button = ctk.CTkButton(nav_buttons, text="🎯 Voir Résultats", 
+                                                 command=self.request_single_row_results,
+                                                 font=ctk.CTkFont(size=12, weight="bold"),
+                                                 fg_color=("green", "darkgreen"))
+        self.single_results_button.grid(row=0, column=2, padx=5, pady=10, sticky="ew")
+        self.single_results_button.grid_remove()  # Hidden initially
     
     def setup_crop_section(self):
-        """Setup crop section"""
-        frame = tk.LabelFrame(self.panel, text="1. Recadrage", bg="#f0f0f0")
-        frame.pack(fill=tk.X, padx=10, pady=5)
+        """Setup modern crop section"""
+        frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        self.current_row += 1
         
-        self.crop_button = tk.Button(frame, text="Recadrer l'image", 
-                                    command=self.request_crop,
-                                    bg="#2196F3", fg="white")
-        self.crop_button.pack(pady=5)
-        self.crop_button.config(state=tk.DISABLED)
+        frame.grid_columnconfigure(0, weight=1)
+        
+        # Section title
+        ctk.CTkLabel(frame, text="✂️ 1. Recadrage", 
+                    font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, pady=(15, 10))
+        
+        self.crop_button = ctk.CTkButton(frame, text="📐 Recadrer l'image", 
+                                       command=self.request_crop,
+                                       font=ctk.CTkFont(size=13, weight="bold"),
+                                       height=32,
+                                       state="disabled")
+        self.crop_button.grid(row=1, column=0, pady=(5, 15), padx=15, sticky="ew")
     
     def setup_corner_section(self):
-        """Setup corner section"""
-        frame = tk.LabelFrame(self.panel, text="2. Coins", bg="#f0f0f0")
-        frame.pack(fill=tk.X, padx=10, pady=5)
+        """Setup modern corner section"""
+        frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        self.current_row += 1
         
-        self.corners_button = tk.Button(frame, text="Sélectionner coins", 
-                                       command=self.request_corners,
-                                       bg="#FF9800", fg="white")
-        self.corners_button.pack(pady=5)
-        self.corners_button.config(state=tk.DISABLED)
+        frame.grid_columnconfigure(0, weight=1)
         
-        self.corners_status = tk.Label(frame, text="Coins: 0/4", bg="#f0f0f0")
-        self.corners_status.pack()
+        # Section title
+        ctk.CTkLabel(frame, text="🎯 2. Sélection des Coins", 
+                    font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, pady=(15, 10))
+        
+        self.corners_button = ctk.CTkButton(frame, text="🔘 Sélectionner 4 coins", 
+                                          command=self.request_corners,
+                                          font=ctk.CTkFont(size=13, weight="bold"),
+                                          height=32,
+                                          state="disabled")
+        self.corners_button.grid(row=1, column=0, pady=5, padx=15, sticky="ew")
+        
+        self.corners_status = ctk.CTkLabel(frame, text="Coins: 0/4", 
+                                         font=ctk.CTkFont(size=12))
+        self.corners_status.grid(row=2, column=0, pady=(5, 15))
     
     def setup_grid_section(self):
-        """Setup grid section"""
-        frame = tk.LabelFrame(self.panel, text="3. Grille", bg="#f0f0f0")
-        frame.pack(fill=tk.X, padx=10, pady=5)
+        """Setup modern grid section"""
+        frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        self.current_row += 1
+        
+        frame.grid_columnconfigure(0, weight=1)
+        
+        # Section title
+        ctk.CTkLabel(frame, text="📐 3. Génération de Grille", 
+                    font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, pady=(15, 10))
         
         # Tube parameters
-        tubes_frame = tk.Frame(frame, bg="#f0f0f0")
-        tubes_frame.pack(fill=tk.X, pady=2)
+        params_frame = ctk.CTkFrame(frame)
+        params_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=5)
+        params_frame.grid_columnconfigure(0, weight=1)
+        params_frame.grid_columnconfigure(1, weight=1)
         
-        tk.Label(tubes_frame, text="Nb éprouvettes:", bg="#f0f0f0").pack(side=tk.LEFT)
-        self.tubes_var = tk.IntVar(value=self.num_tubes)
-        tubes_spinbox = tk.Spinbox(tubes_frame, from_=2, to=10, width=5,
-                                  textvariable=self.tubes_var, command=self.on_tubes_change)
-        tubes_spinbox.pack(side=tk.RIGHT)
+        # Tubes
+        tubes_frame = ctk.CTkFrame(params_frame)
+        tubes_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        tubes_frame.grid_columnconfigure(0, weight=1)
         
-        balls_frame = tk.Frame(frame, bg="#f0f0f0")
-        balls_frame.pack(fill=tk.X, pady=2)
+        ctk.CTkLabel(tubes_frame, text="Nb éprouvettes:", font=ctk.CTkFont(size=12)).grid(row=0, column=0, padx=5, pady=5)
         
-        tk.Label(balls_frame, text="Balles/éprouvette:", bg="#f0f0f0").pack(side=tk.LEFT)
-        self.balls_var = tk.IntVar(value=self.balls_per_tube)
-        balls_spinbox = tk.Spinbox(balls_frame, from_=2, to=8, width=5,
-                                  textvariable=self.balls_var, command=self.on_balls_change)
-        balls_spinbox.pack(side=tk.RIGHT)
+        self.tubes_var = ctk.IntVar(value=self.num_tubes)
+        tubes_spinbox = ctk.CTkOptionMenu(tubes_frame, values=[str(i) for i in range(2, 11)],
+                                        command=self.on_tubes_change_menu,
+                                        variable=self.tubes_var)
+        tubes_spinbox.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+        tubes_spinbox.set(str(self.num_tubes))
+        
+        # Balls
+        balls_frame = ctk.CTkFrame(params_frame)
+        balls_frame.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        balls_frame.grid_columnconfigure(0, weight=1)
+        
+        ctk.CTkLabel(balls_frame, text="Balles/éprouvette:", font=ctk.CTkFont(size=12)).grid(row=0, column=0, padx=5, pady=5)
+        
+        self.balls_var = ctk.IntVar(value=self.balls_per_tube)
+        balls_spinbox = ctk.CTkOptionMenu(balls_frame, values=[str(i) for i in range(2, 9)],
+                                        command=self.on_balls_change_menu,
+                                        variable=self.balls_var)
+        balls_spinbox.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+        balls_spinbox.set(str(self.balls_per_tube))
         
         # Expected total
-        self.expected_label = tk.Label(frame, text=f"Total attendu: {self.num_tubes * self.balls_per_tube}",
-                                      bg="#f0f0f0", font=("Arial", 9, "italic"))
-        self.expected_label.pack(pady=2)
+        self.expected_label = ctk.CTkLabel(frame, text=f"📊 Total attendu: {self.num_tubes * self.balls_per_tube}",
+                                         font=ctk.CTkFont(size=12, weight="bold"))
+        self.expected_label.grid(row=2, column=0, pady=5)
         
-        self.generate_button = tk.Button(frame, text="Générer grille", 
-                                        command=self.request_generate_grid,
-                                        bg="#4CAF50", fg="white")
-        self.generate_button.pack(pady=5)
-        self.generate_button.config(state=tk.DISABLED)
+        self.generate_button = ctk.CTkButton(frame, text="⚡ Générer grille", 
+                                           command=self.request_generate_grid,
+                                           font=ctk.CTkFont(size=13, weight="bold"),
+                                           height=32,
+                                           state="disabled")
+        self.generate_button.grid(row=3, column=0, pady=5, padx=15, sticky="ew")
         
-        self.grid_status = tk.Label(frame, text="Grille: Non générée", bg="#f0f0f0")
-        self.grid_status.pack()
+        self.grid_status = ctk.CTkLabel(frame, text="Grille: Non générée", 
+                                      font=ctk.CTkFont(size=11))
+        self.grid_status.grid(row=4, column=0, pady=(5, 15))
     
     def setup_analysis_section(self):
-        """Setup analysis section"""
-        frame = tk.LabelFrame(self.panel, text="4. Analyse", bg="#f0f0f0")
-        frame.pack(fill=tk.X, padx=10, pady=5)
+        """Setup modern analysis section"""
+        frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        frame.grid(row=self.current_row, column=0, sticky="ew", padx=20, pady=10)
+        self.current_row += 1
         
-        tk.Label(frame, text="Tolérance:", bg="#f0f0f0").pack()
-        self.tolerance_var = tk.IntVar(value=self.color_tolerance)
-        tolerance_scale = tk.Scale(frame, from_=20, to=80, orient=tk.HORIZONTAL,
-                                  variable=self.tolerance_var, command=self.on_tolerance_change,
-                                  bg="#f0f0f0")
-        tolerance_scale.pack(fill=tk.X)
+        frame.grid_columnconfigure(0, weight=1)
         
-        self.analyze_button = tk.Button(frame, text="Analyser couleurs", 
-                                       command=self.request_analyze_colors,
-                                       bg="#9C27B0", fg="white")
-        self.analyze_button.pack(pady=5)
-        self.analyze_button.config(state=tk.DISABLED)
+        # Section title
+        ctk.CTkLabel(frame, text="🔍 4. Analyse des Couleurs", 
+                    font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, pady=(15, 10))
+        
+        # Tolerance control
+        ctk.CTkLabel(frame, text="Tolérance de couleur:", 
+                    font=ctk.CTkFont(size=12)).grid(row=1, column=0, pady=(5, 0))
+        
+        self.tolerance_var = ctk.IntVar(value=self.color_tolerance)
+        tolerance_slider = ctk.CTkSlider(frame, from_=20, to=80, number_of_steps=12,
+                                       variable=self.tolerance_var, command=self.on_tolerance_change)
+        tolerance_slider.grid(row=2, column=0, sticky="ew", padx=15, pady=5)
+        tolerance_slider.set(self.color_tolerance)
+        
+        # Tolerance value display
+        self.tolerance_label = ctk.CTkLabel(frame, text=f"Valeur: {self.color_tolerance}", 
+                                          font=ctk.CTkFont(size=11))
+        self.tolerance_label.grid(row=3, column=0, pady=(0, 10))
+        
+        self.analyze_button = ctk.CTkButton(frame, text="🎨 Analyser couleurs", 
+                                          command=self.request_analyze_colors,
+                                          font=ctk.CTkFont(size=13, weight="bold"),
+                                          height=32,
+                                          fg_color=("purple", "darkmagenta"),
+                                          state="disabled")
+        self.analyze_button.grid(row=4, column=0, pady=(5, 15), padx=15, sticky="ew")
     
     def setup_status_section(self):
-        """Setup status section"""
-        frame = tk.LabelFrame(self.panel, text="État", bg="#f0f0f0")
-        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        """Setup modern status section"""
+        frame = ctk.CTkFrame(self.panel, corner_radius=10)
+        frame.grid(row=self.current_row, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        self.current_row += 1
         
-        self.status_text = tk.Text(frame, height=6, width=30, font=("Arial", 9),
-                                  state=tk.DISABLED, wrap=tk.WORD)
-        self.status_text.pack(fill=tk.BOTH, expand=True, pady=5)
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(1, weight=1)
         
-        tk.Button(frame, text="Effacer tout", command=self.clear_all,
-                 bg="#f44336", fg="white").pack()
+        # Section title
+        ctk.CTkLabel(frame, text="📝 État du Processus", 
+                    font=ctk.CTkFont(size=16, weight="bold")).grid(row=0, column=0, pady=(15, 10))
+        
+        # Status textbox
+        self.status_text = ctk.CTkTextbox(frame, height=120, corner_radius=8,
+                                        font=ctk.CTkFont(size=11))
+        self.status_text.grid(row=1, column=0, sticky="nsew", padx=15, pady=5)
+        
+        # Clear button
+        clear_btn = ctk.CTkButton(frame, text="🗑️ Effacer tout", 
+                                command=self.clear_all,
+                                font=ctk.CTkFont(size=12, weight="bold"),
+                                fg_color=("red", "darkred"),
+                                height=28)
+        clear_btn.grid(row=2, column=0, pady=15, padx=15, sticky="ew")
     
     def set_callbacks(self, crop_callback, corners_callback, grid_callback, analyze_callback, 
                      start_config_callback=None, next_row_callback=None, 
@@ -229,23 +340,23 @@ class ParameterPanel:
         self.on_single_row_results = single_results_callback
     
     def enable_crop_button(self, enabled=True):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        self.crop_button.config(state=state)
+        state = "normal" if enabled else "disabled"
+        self.crop_button.configure(state=state)
     
     def enable_corners_button(self, enabled=True):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        self.corners_button.config(state=state)
+        state = "normal" if enabled else "disabled"
+        self.corners_button.configure(state=state)
     
     def enable_generate_button(self, enabled=True):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        self.generate_button.config(state=state)
+        state = "normal" if enabled else "disabled"
+        self.generate_button.configure(state=state)
     
     def enable_analyze_button(self, enabled=True):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        self.analyze_button.config(state=state)
+        state = "normal" if enabled else "disabled"
+        self.analyze_button.configure(state=state)
     
     def update_corners_status(self, count):
-        self.corners_status.config(text=f"Coins: {count}/4")
+        self.corners_status.configure(text=f"Coins: {count}/4")
         if count == 4:
             self.enable_generate_button(True)
         else:
@@ -254,22 +365,19 @@ class ParameterPanel:
     
     def update_grid_status(self, grid_count):
         if grid_count > 0:
-            self.grid_status.config(text=f"Grille: {grid_count} cercles")
+            self.grid_status.configure(text=f"Grille: {grid_count} cercles")
             self.enable_analyze_button(True)
         else:
-            self.grid_status.config(text="Grille: Erreur")
+            self.grid_status.configure(text="Grille: Erreur")
             self.enable_analyze_button(False)
     
     def add_status_message(self, message):
-        self.status_text.config(state=tk.NORMAL)
-        self.status_text.insert(tk.END, message + "\n")
-        self.status_text.see(tk.END)
-        self.status_text.config(state=tk.DISABLED)
+        current_text = self.status_text.get("0.0", "end")
+        self.status_text.delete("0.0", "end")
+        self.status_text.insert("0.0", current_text + message + "\n")
     
     def clear_status(self):
-        self.status_text.config(state=tk.NORMAL)
-        self.status_text.delete(1.0, tk.END)
-        self.status_text.config(state=tk.DISABLED)
+        self.status_text.delete("0.0", "end")
     
     def request_crop(self):
         if self.on_crop_requested:
@@ -291,7 +399,26 @@ class ParameterPanel:
         self.grid_spacing = int(value)
     
     def on_tolerance_change(self, value):
-        self.color_tolerance = int(value)
+        self.color_tolerance = int(float(value))
+        # Update tolerance display
+        if hasattr(self, 'tolerance_label'):
+            self.tolerance_label.configure(text=f"Valeur: {self.color_tolerance}")
+    
+    def on_tubes_change_menu(self, value):
+        """Handle tubes change from option menu"""
+        self.num_tubes = int(value)
+        self.update_expected_total()
+        # Callback to parent to save changes
+        if hasattr(self, '_on_tube_params_changed') and self._on_tube_params_changed:
+            self._on_tube_params_changed()
+    
+    def on_balls_change_menu(self, value):
+        """Handle balls change from option menu"""
+        self.balls_per_tube = int(value)
+        self.update_expected_total()
+        # Callback to parent to save changes
+        if hasattr(self, '_on_tube_params_changed') and self._on_tube_params_changed:
+            self._on_tube_params_changed()
     
     def on_tubes_change(self):
         self.num_tubes = self.tubes_var.get()
@@ -339,7 +466,14 @@ class ParameterPanel:
     def on_rows_change(self):
         self.num_rows = self.rows_var.get()
         # Always enable start button when rows are configured
-        self.start_button.config(state=tk.NORMAL)
+        self.start_button.configure(state="normal")
+    
+    def on_rows_change_menu(self, value):
+        """Handle rows change from option menu"""
+        self.num_rows = int(value)
+        self.rows_var.set(self.num_rows)
+        # Always enable start button when rows are configured
+        self.start_button.configure(state="normal")
     
     def request_start_configuration(self):
         if self.on_start_configuration:
@@ -362,55 +496,55 @@ class ParameterPanel:
             self.on_single_row_results()
     
     def enable_start_button(self, enabled=True):
-        state = tk.NORMAL if enabled else tk.DISABLED
-        self.start_button.config(state=state)
+        state = "normal" if enabled else "disabled"
+        self.start_button.configure(state=state)
     
     def show_navigation(self, show=True):
         if show:
-            self.nav_frame.pack(fill=tk.X, padx=10, pady=5, before=self.status_text.master)
+            self.nav_frame.grid()
         else:
-            self.nav_frame.pack_forget()
+            self.nav_frame.grid_remove()
     
     def update_navigation_buttons(self, is_first_row=True, is_last_row=True, can_finish=False, is_single_row=False):
         # Previous button
         if is_first_row:
-            self.prev_button.config(state=tk.DISABLED)
+            self.prev_button.configure(state="disabled")
         else:
-            self.prev_button.config(state=tk.NORMAL)
+            self.prev_button.configure(state="normal")
         
         # Handle single row case differently
         if is_single_row and is_last_row and can_finish:
             # Hide all navigation buttons except single results
-            self.next_button.pack_forget()
-            self.finish_button.pack_forget()
-            self.single_results_button.pack(side=tk.RIGHT, padx=5)
-            self.single_results_button.config(state=tk.NORMAL)
+            self.next_button.grid_remove()
+            self.finish_button.grid_remove()
+            self.single_results_button.grid()
+            self.single_results_button.configure(state="normal")
         elif is_last_row:
             # Multi-row case: Hide next, show finish
-            self.next_button.pack_forget()
-            self.single_results_button.pack_forget()
+            self.next_button.grid_remove()
+            self.single_results_button.grid_remove()
             if can_finish:
-                self.finish_button.pack(side=tk.RIGHT, padx=5)
-                self.finish_button.config(state=tk.NORMAL)
+                self.finish_button.grid()
+                self.finish_button.configure(state="normal")
             else:
-                self.finish_button.pack_forget()
+                self.finish_button.grid_remove()
         else:
             # Not last row: Hide finish buttons, show next
-            self.finish_button.pack_forget()
-            self.single_results_button.pack_forget()
-            self.next_button.pack(side=tk.RIGHT, padx=5)
-            self.next_button.config(state=tk.NORMAL)
+            self.finish_button.grid_remove()
+            self.single_results_button.grid_remove()
+            self.next_button.grid()
+            self.next_button.configure(state="normal")
     
     def update_progress(self, current_row=1, total_rows=1):
         if total_rows > 1:
-            self.progress_label.config(text=f"Rangée {current_row}/{total_rows}")
+            self.progress_label.configure(text=f"🔄 Rangée {current_row}/{total_rows}")
         else:
-            self.progress_label.config(text=f"Rangée {current_row}/1")
+            self.progress_label.configure(text=f"🔄 Rangée {current_row}/1")
     
     def enable_multi_row_mode(self, enabled=True):
         """Enable or disable multi-row specific controls"""
         if enabled:
-            self.start_button.config(state=tk.NORMAL)
+            self.start_button.configure(state="normal")
         else:
-            self.start_button.config(state=tk.DISABLED)
+            self.start_button.configure(state="disabled")
             self.show_navigation(False)

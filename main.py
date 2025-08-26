@@ -1,11 +1,15 @@
 """
-Ball Sort Puzzle Solver - Working Version
+Ball Sort Puzzle Solver - CustomTkinter Modern Version
 """
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import sys
 import os
+
+# Configure CustomTkinter
+ctk.set_appearance_mode("dark")  # Modes: "System", "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
 # Add paths
 sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
@@ -22,9 +26,10 @@ from corner_selector import CornerSelector
 
 class BallSortSolver:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Ball Sort Puzzle Solver - Working Version")
-        self.root.geometry("1200x800")
+        self.root = ctk.CTk()
+        self.root.title("Ball Sort Puzzle Solver - Modern Edition")
+        self.root.geometry("1400x900")
+        self.root.minsize(1200, 800)
         
         # Core components
         self.image_processor = ImageProcessor()
@@ -40,15 +45,17 @@ class BallSortSolver:
         self.setup_ui()
     
     def setup_ui(self):
-        """Setup UI"""
-        main_container = tk.Frame(self.root)
-        main_container.pack(fill=tk.BOTH, expand=True)
+        """Setup modern UI"""
+        # Configure grid layout
+        self.root.grid_columnconfigure(0, weight=3)  # Image area
+        self.root.grid_columnconfigure(1, weight=1)  # Parameters panel
+        self.root.grid_rowconfigure(0, weight=1)
         
         # Left: Image area
-        self.setup_image_area(main_container)
+        self.setup_image_area()
         
         # Right: Parameters
-        self.parameter_panel = ParameterPanel(main_container)
+        self.parameter_panel = ParameterPanel(self.root)
         self.parameter_panel.set_callbacks(
             self.open_crop_tool,
             self.open_corner_selector,
@@ -68,30 +75,40 @@ class BallSortSolver:
         self.crop_tool = CropTool(self.root, self.on_crop_complete)
         self.corner_selector = CornerSelector(self.root, self.on_corners_complete)
     
-    def setup_image_area(self, parent):
-        """Setup image area"""
-        container = tk.Frame(parent, bg="#f8f8f8")
-        container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    def setup_image_area(self):
+        """Setup modern image area"""
+        container = ctk.CTkFrame(self.root, corner_radius=15)
+        container.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        
+        # Configure grid
+        container.grid_columnconfigure(0, weight=1)
+        container.grid_rowconfigure(2, weight=1)  # Image frame gets most space
         
         # Title
-        title = tk.Label(container, text="Ball Sort Puzzle Solver", 
-                        font=("Arial", 18, "bold"), bg="#f8f8f8")
-        title.pack(pady=10)
+        title = ctk.CTkLabel(container, text="🎯 Ball Sort Puzzle Solver", 
+                           font=ctk.CTkFont(size=24, weight="bold"))
+        title.grid(row=0, column=0, pady=(20, 10), sticky="ew")
         
-        # Upload
-        upload_btn = tk.Button(container, text="Charger Image", 
-                              command=self.upload_image,
-                              font=("Arial", 12), bg="#4CAF50", fg="white",
-                              padx=20, pady=10)
-        upload_btn.pack(pady=10)
+        # Upload button
+        upload_btn = ctk.CTkButton(container, 
+                                 text="📁 Charger Image", 
+                                 command=self.upload_image,
+                                 font=ctk.CTkFont(size=14, weight="bold"),
+                                 height=45,
+                                 corner_radius=10)
+        upload_btn.grid(row=1, column=0, pady=10, padx=20, sticky="ew")
         
-        # Image frame
-        self.image_frame = tk.Frame(container, bg="white", relief=tk.SUNKEN, bd=2)
-        self.image_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        # Image display frame
+        self.image_frame = ctk.CTkFrame(container, corner_radius=10)
+        self.image_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
         
-        # Results
-        self.results_frame = tk.Frame(container)
-        self.results_frame.pack(fill=tk.X, pady=10)
+        # Configure image frame
+        self.image_frame.grid_columnconfigure(0, weight=1)
+        self.image_frame.grid_rowconfigure(0, weight=1)
+        
+        # Results frame
+        self.results_frame = ctk.CTkScrollableFrame(container, height=150, corner_radius=10)
+        self.results_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 20))
     
     def upload_image(self):
         """Upload image"""
@@ -112,7 +129,7 @@ class BallSortSolver:
                 messagebox.showerror("Erreur", f"Erreur: {str(e)}")
     
     def display_current_image(self):
-        """Display image"""
+        """Display image with modern styling"""
         for widget in self.image_frame.winfo_children():
             widget.destroy()
         
@@ -120,12 +137,14 @@ class BallSortSolver:
         
         if display_img:
             self.photo = ImageTk.PhotoImage(display_img)
-            label = tk.Label(self.image_frame, image=self.photo, bg="white")
-            label.pack(expand=True)
+            label = ctk.CTkLabel(self.image_frame, image=self.photo, text="")
+            label.grid(row=0, column=0, sticky="nsew")
         else:
-            label = tk.Label(self.image_frame, text="Aucune image", 
-                           font=("Arial", 14), bg="white", fg="gray")
-            label.pack(expand=True)
+            label = ctk.CTkLabel(self.image_frame, 
+                               text="📷 Aucune image chargée\n\nCliquez sur 'Charger Image' pour commencer", 
+                               font=ctk.CTkFont(size=16),
+                               text_color=("gray60", "gray40"))
+            label.grid(row=0, column=0, sticky="nsew")
     
     def open_crop_tool(self):
         """Open crop tool"""
@@ -251,62 +270,52 @@ class BallSortSolver:
             widget.destroy()
         
         if not color_groups:
-            tk.Label(self.results_frame, text="Aucune balle détectée").pack()
+            ctk.CTkLabel(self.results_frame, text="🔍 Aucune balle détectée").grid(row=0, column=0, pady=10)
             return
         
-        tk.Label(self.results_frame, text="Résultats:", 
-                font=("Arial", 14, "bold")).pack(pady=(0, 10))
+        # Configure results frame grid
+        self.results_frame.grid_columnconfigure(0, weight=1)
+        current_row = 0
+        
+        ctk.CTkLabel(self.results_frame, text="📊 Résultats:", 
+                   font=ctk.CTkFont(size=16, weight="bold")).grid(row=current_row, column=0, pady=(10, 5), sticky="w")
+        current_row += 1
         
         total = 0
         for i, (color, balls) in enumerate(color_groups.items()):
             count = len(balls)
             total += count
             
-            frame = tk.Frame(self.results_frame)
-            frame.pack(fill=tk.X, pady=2)
+            # Simple modern color display for now
+            color_name = self.multi_row_manager.get_color_name(color) if self.multi_row_manager else f"Couleur {i+1}"
+            color_text = f"🔴 {color_name}: {count} balles"
             
-            canvas = tk.Canvas(frame, width=25, height=25)
-            color_hex = f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
-            canvas.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black")
-            canvas.pack(side=tk.LEFT, padx=(0, 10))
-            
-            tk.Label(frame, text=f"Couleur {i+1}: {count} balles").pack(side=tk.LEFT)
+            color_label = ctk.CTkLabel(self.results_frame, text=color_text, 
+                                     font=ctk.CTkFont(size=12))
+            color_label.grid(row=current_row, column=0, sticky="w", padx=10, pady=2)
+            current_row += 1
         
         # Total and comparison with expected
-        total_frame = tk.Frame(self.results_frame)
-        total_frame.pack(pady=(10, 0))
-        
         expected_total = self.grid_generator.get_expected_ball_count()
-        total_text = f"TOTAL: {total} balles"
+        total_text = f"📊 TOTAL: {total} balles"
         
         if expected_total > 0:
             if total == expected_total:
-                total_text += " ✓"
-                color = "#4CAF50"
+                total_text += " ✅"
             else:
-                total_text += f" (attendu: {expected_total})"
-                color = "#FF9800"
-        else:
-            color = "#2196F3"
+                total_text += f" (attendu: {expected_total}) ⚠️"
         
-        tk.Label(total_frame, text=total_text,
-                font=("Arial", 12, "bold"), fg=color).pack()
+        total_label = ctk.CTkLabel(self.results_frame, text=total_text,
+                                 font=ctk.CTkFont(size=14, weight="bold"))
+        total_label.grid(row=current_row, column=0, pady=(10, 5), sticky="w", padx=10)
+        current_row += 1
         
-        # Tube analysis
+        # Simplified tube analysis for modern UI
         if hasattr(self, 'current_grid') and self.current_grid:
-            num_tubes, balls_per_tube = self.parameter_panel.get_tube_parameters()
-            tube_analysis = self.analyze_by_tubes(color_groups, num_tubes)
-            
-            if tube_analysis:
-                tube_frame = tk.Frame(self.results_frame)
-                tube_frame.pack(pady=5)
-                
-                tk.Label(tube_frame, text="Répartition par éprouvette:",
-                        font=("Arial", 10, "bold")).pack()
-                
-                for tube_idx, tube_colors in tube_analysis.items():
-                    tube_text = f"Éprouvette {tube_idx + 1}: {len(tube_colors)} couleurs"
-                    tk.Label(tube_frame, text=tube_text, font=("Arial", 9)).pack()
+            tube_info = ctk.CTkLabel(self.results_frame, 
+                                   text="🧪 Analyse par éprouvettes disponible",
+                                   font=ctk.CTkFont(size=11))
+            tube_info.grid(row=current_row, column=0, pady=5, sticky="w", padx=10)
     
     def analyze_by_tubes(self, color_groups, num_tubes):
         """Analyze color distribution by tubes"""
