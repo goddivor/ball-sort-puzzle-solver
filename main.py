@@ -57,7 +57,8 @@ class BallSortSolver:
             self.start_multi_row_configuration,
             self.go_to_next_row,
             self.go_to_previous_row,
-            self.finish_all_rows
+            self.finish_all_rows,
+            self.show_single_row_results
         )
         
         # Set callback for tube parameter changes
@@ -470,8 +471,9 @@ class BallSortSolver:
         is_first = self.multi_row_manager.is_first_row()
         is_last = self.multi_row_manager.is_last_row()
         can_finish = self.multi_row_manager.can_finish_all_rows()
+        is_single_row = self.multi_row_manager.num_rows == 1
         
-        self.parameter_panel.update_navigation_buttons(is_first, is_last, can_finish)
+        self.parameter_panel.update_navigation_buttons(is_first, is_last, can_finish, is_single_row)
     
     def display_aggregated_results(self):
         """Display aggregated results from all rows"""
@@ -741,6 +743,119 @@ Total balles détectées: {results['total_balls']}"""
             num_tubes = self.parameter_panel.tubes_var.get()
             balls_per_tube = self.parameter_panel.balls_var.get()
             self.multi_row_manager.set_current_row_tube_params(num_tubes, balls_per_tube)
+    
+    def show_single_row_results(self):
+        """Show results for single row in dedicated window"""
+        if not self.is_multi_row_mode or self.multi_row_manager.num_rows != 1:
+            return
+        
+        row_data = self.multi_row_manager.get_current_row_data()
+        if not row_data or not row_data['colors']:
+            messagebox.showwarning("Attention", "Aucune couleur analysée pour cette rangée")
+            return
+        
+        # Create new window
+        results_window = tk.Toplevel(self.root)
+        results_window.title("Résultats - Ball Sort Puzzle")
+        results_window.geometry("600x500")
+        results_window.grab_set()
+        
+        # Main frame with scrollbar
+        main_frame = tk.Frame(results_window)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        canvas = tk.Canvas(main_frame)
+        scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Title
+        title = tk.Label(scrollable_frame, text="Résultats de l'Analyse", 
+                        font=("Arial", 18, "bold"), fg="#2196F3")
+        title.pack(pady=(0, 15))
+        
+        # Summary stats
+        summary_frame = tk.LabelFrame(scrollable_frame, text="Résumé", font=("Arial", 12, "bold"))
+        summary_frame.pack(fill=tk.X, pady=10)
+        
+        total_balls = sum(len(balls) for balls in row_data['colors'].values())
+        total_tubes = row_data['num_tubes']
+        total_colors = len(row_data['colors'])
+        
+        stats_text = f"""Éprouvettes: {total_tubes}
+Balles détectées: {total_balls}
+Couleurs différentes: {total_colors}"""
+        
+        tk.Label(summary_frame, text=stats_text, font=("Arial", 11), 
+                justify=tk.LEFT).pack(padx=10, pady=10)
+        
+        # Colors detail
+        colors_frame = tk.LabelFrame(scrollable_frame, text="Détail des Couleurs", 
+                                   font=("Arial", 12, "bold"))
+        colors_frame.pack(fill=tk.X, pady=10)
+        
+        # Sort colors by count
+        sorted_colors = sorted(row_data['colors'].items(), 
+                             key=lambda x: len(x[1]), reverse=True)
+        
+        for i, (color, balls) in enumerate(sorted_colors):
+            color_frame = tk.Frame(colors_frame)
+            color_frame.pack(fill=tk.X, padx=10, pady=5)
+            
+            # Color sample
+            try:
+                color_rgb = color
+                color_name = self.multi_row_manager.get_color_name(color_rgb)
+                
+                canvas_color = tk.Canvas(color_frame, width=30, height=30)
+                color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
+                canvas_color.create_rectangle(0, 0, 30, 30, fill=color_hex, outline="black", width=2)
+                canvas_color.pack(side=tk.LEFT, padx=(0, 15))
+                
+                # Color info
+                info_label = tk.Label(color_frame, 
+                                    text=f"{color_name}: {len(balls)} balles",
+                                    font=("Arial", 11, "bold"))
+                info_label.pack(side=tk.LEFT, anchor=tk.W)
+                
+            except Exception as e:
+                tk.Label(color_frame, 
+                       text=f"Couleur {i+1}: {len(balls)} balles",
+                       font=("Arial", 11)).pack()
+        
+        # Expected vs actual
+        expected_total = total_tubes * row_data['balls_per_tube']
+        comparison_frame = tk.LabelFrame(scrollable_frame, text="Comparaison", 
+                                       font=("Arial", 12, "bold"))
+        comparison_frame.pack(fill=tk.X, pady=10)
+        
+        if total_balls == expected_total:
+            comparison_text = f"✅ Parfait ! {total_balls}/{expected_total} balles détectées"
+            comparison_color = "#4CAF50"
+        else:
+            comparison_text = f"⚠️ {total_balls}/{expected_total} balles détectées"
+            comparison_color = "#FF9800"
+        
+        tk.Label(comparison_frame, text=comparison_text, 
+               font=("Arial", 11, "bold"), fg=comparison_color).pack(padx=10, pady=10)
+        
+        # Close button
+        close_frame = tk.Frame(scrollable_frame)
+        close_frame.pack(pady=15)
+        
+        tk.Button(close_frame, text="Fermer", command=results_window.destroy,
+                 bg="#f44336", fg="white", font=("Arial", 12)).pack()
+        
+        # Pack scrollbar elements
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
     
     def display_aggregated_results(self):
         """Display aggregated results from all rows"""

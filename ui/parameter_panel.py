@@ -18,6 +18,7 @@ class ParameterPanel:
         self.on_next_row = None
         self.on_previous_row = None
         self.on_finish_all_rows = None
+        self.on_single_row_results = None
         
         # Parameters
         self.grid_spacing = 30
@@ -112,6 +113,13 @@ class ParameterPanel:
                                       bg="#E91E63", fg="white")
         self.finish_button.pack(side=tk.RIGHT, padx=5)
         self.finish_button.pack_forget()  # Hidden initially
+        
+        # Single row results button
+        self.single_results_button = tk.Button(nav_buttons, text="Voir Résultats", 
+                                             command=self.request_single_row_results,
+                                             bg="#4CAF50", fg="white")
+        self.single_results_button.pack(side=tk.RIGHT, padx=5)
+        self.single_results_button.pack_forget()  # Hidden initially
     
     def setup_crop_section(self):
         """Setup crop section"""
@@ -208,7 +216,7 @@ class ParameterPanel:
     
     def set_callbacks(self, crop_callback, corners_callback, grid_callback, analyze_callback, 
                      start_config_callback=None, next_row_callback=None, 
-                     prev_row_callback=None, finish_callback=None):
+                     prev_row_callback=None, finish_callback=None, single_results_callback=None):
         """Set callback functions"""
         self.on_crop_requested = crop_callback
         self.on_corners_requested = corners_callback
@@ -218,6 +226,7 @@ class ParameterPanel:
         self.on_next_row = next_row_callback
         self.on_previous_row = prev_row_callback
         self.on_finish_all_rows = finish_callback
+        self.on_single_row_results = single_results_callback
     
     def enable_crop_button(self, enabled=True):
         state = tk.NORMAL if enabled else tk.DISABLED
@@ -348,6 +357,10 @@ class ParameterPanel:
         if self.on_finish_all_rows:
             self.on_finish_all_rows()
     
+    def request_single_row_results(self):
+        if self.on_single_row_results:
+            self.on_single_row_results()
+    
     def enable_start_button(self, enabled=True):
         state = tk.NORMAL if enabled else tk.DISABLED
         self.start_button.config(state=state)
@@ -358,27 +371,33 @@ class ParameterPanel:
         else:
             self.nav_frame.pack_forget()
     
-    def update_navigation_buttons(self, is_first_row=True, is_last_row=True, can_finish=False):
+    def update_navigation_buttons(self, is_first_row=True, is_last_row=True, can_finish=False, is_single_row=False):
         # Previous button
         if is_first_row:
             self.prev_button.config(state=tk.DISABLED)
         else:
             self.prev_button.config(state=tk.NORMAL)
         
-        # Next and Finish buttons
-        if is_last_row:
-            # Hide next button on last row
+        # Handle single row case differently
+        if is_single_row and is_last_row and can_finish:
+            # Hide all navigation buttons except single results
             self.next_button.pack_forget()
-            # Show finish button if conditions are met
+            self.finish_button.pack_forget()
+            self.single_results_button.pack(side=tk.RIGHT, padx=5)
+            self.single_results_button.config(state=tk.NORMAL)
+        elif is_last_row:
+            # Multi-row case: Hide next, show finish
+            self.next_button.pack_forget()
+            self.single_results_button.pack_forget()
             if can_finish:
                 self.finish_button.pack(side=tk.RIGHT, padx=5)
                 self.finish_button.config(state=tk.NORMAL)
             else:
                 self.finish_button.pack_forget()
         else:
-            # Hide finish button on non-last rows
+            # Not last row: Hide finish buttons, show next
             self.finish_button.pack_forget()
-            # Show next button
+            self.single_results_button.pack_forget()
             self.next_button.pack(side=tk.RIGHT, padx=5)
             self.next_button.config(state=tk.NORMAL)
     
