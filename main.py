@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'ui'))
 from image_processor import ImageProcessor
 from grid_generator import GridGenerator  
 from color_analyzer import ColorAnalyzer
+from multi_row_manager import MultiRowManager
 from parameter_panel import ParameterPanel
 from crop_tool import CropTool
 from corner_selector import CornerSelector
@@ -29,10 +30,12 @@ class BallSortSolver:
         self.image_processor = ImageProcessor()
         self.grid_generator = GridGenerator()
         self.color_analyzer = ColorAnalyzer()
+        self.multi_row_manager = MultiRowManager()
         
         # State
         self.current_grid = []
         self.photo = None
+        self.is_multi_row_mode = False
         
         self.setup_ui()
     
@@ -50,7 +53,11 @@ class BallSortSolver:
             self.open_crop_tool,
             self.open_corner_selector,
             self.generate_grid,
-            self.analyze_colors
+            self.analyze_colors,
+            self.start_multi_row_configuration,
+            self.go_to_next_row,
+            self.go_to_previous_row,
+            self.finish_all_rows
         )
         
         # Tools
@@ -94,6 +101,7 @@ class BallSortSolver:
                 self.image_processor.load_image(file_path)
                 self.display_current_image()
                 self.parameter_panel.enable_crop_button(True)
+                self.parameter_panel.enable_start_button(True)
                 self.parameter_panel.add_status_message("Image chargée")
                 self.clear_results()
             except Exception as e:
@@ -127,6 +135,13 @@ class BallSortSolver:
         try:
             cropped = self.image_processor.crop_image(x1, y1, x2, y2)
             if cropped:
+                # Save images to multi-row manager if in multi-row mode
+                if self.is_multi_row_mode:
+                    self.multi_row_manager.set_current_row_images(
+                        cropped.copy(),
+                        self.image_processor.processed_image.copy() if self.image_processor.processed_image else None
+                    )
+                
                 self.display_current_image()
                 self.parameter_panel.enable_corners_button(True)
                 self.parameter_panel.add_status_message(f"Recadré: {cropped.size}")
@@ -212,6 +227,14 @@ class BallSortSolver:
             color_groups = self.color_analyzer.group_balls_by_color(detected)
             self.display_analysis_results(color_groups)
             self.parameter_panel.add_status_message(f"Analysé: {len(detected)} balles")
+            
+            # Save colors to multi-row manager if in multi-row mode
+            if self.is_multi_row_mode:
+                self.multi_row_manager.set_current_row_colors(color_groups)
+                # Create and save matrices
+                grid_matrix = self.create_grid_matrix()
+                color_matrix = self.create_color_matrix(color_groups)
+                self.multi_row_manager.set_current_row_matrices(grid_matrix, color_matrix)
             
         except Exception as e:
             messagebox.showerror("Erreur", str(e))
@@ -304,6 +327,347 @@ class BallSortSolver:
         """Clear results"""
         for widget in self.results_frame.winfo_children():
             widget.destroy()
+    
+    def start_multi_row_configuration(self):
+        """Start multi-row configuration process"""
+        num_rows = self.parameter_panel.get_num_rows()
+        self.multi_row_manager.set_num_rows(num_rows)
+        self.is_multi_row_mode = num_rows > 1
+        
+        if self.is_multi_row_mode:
+            self.parameter_panel.show_navigation(True)
+            self.update_multi_row_ui()
+            self.parameter_panel.add_status_message(f"Mode multi-rangées: {num_rows} rangées")
+        
+        # Enable crop button for first row
+        self.parameter_panel.enable_crop_button(True)
+    
+    def go_to_next_row(self):
+        """Move to next row"""
+        if not self.is_multi_row_mode:
+            return
+        
+        # Save current row data
+        self.save_current_row_data()
+        
+        if self.multi_row_manager.go_to_next_row():
+            self.update_multi_row_ui()
+            self.load_current_row_data()
+            
+            current_row = self.multi_row_manager.get_current_row_number()
+            self.parameter_panel.add_status_message(f"Passage à la rangée {current_row}")
+    
+    def go_to_previous_row(self):
+        """Move to previous row"""
+        if not self.is_multi_row_mode:
+            return
+        
+        # Save current row data
+        self.save_current_row_data()
+        
+        if self.multi_row_manager.go_to_previous_row():
+            self.update_multi_row_ui()
+            self.load_current_row_data()
+            
+            current_row = self.multi_row_manager.get_current_row_number()
+            self.parameter_panel.add_status_message(f"Retour à la rangée {current_row}")
+    
+    def finish_all_rows(self):
+        """Finish all rows and show aggregated results"""
+        if not self.is_multi_row_mode:
+            return
+        
+        # Save current row data
+        self.save_current_row_data()
+        
+        # Show aggregated results
+        self.display_aggregated_results()
+        self.parameter_panel.add_status_message("Configuration multi-rangées terminée")
+    
+    def save_current_row_data(self):
+        """Save current row configuration"""
+        if not self.is_multi_row_mode:
+            return
+        
+        # Save current state to multi-row manager
+        corners = self.grid_generator.get_corner_points()
+        if len(corners) == 4:
+            self.multi_row_manager.set_current_row_corners(corners)
+        
+        num_tubes, balls_per_tube = self.parameter_panel.get_tube_parameters()
+        self.multi_row_manager.set_current_row_tube_params(num_tubes, balls_per_tube)
+        
+        if self.current_grid:
+            self.multi_row_manager.set_current_row_grid(self.current_grid)
+    
+    def load_current_row_data(self):
+        """Load data for current row"""
+        if not self.is_multi_row_mode:
+            return
+        
+        row_data = self.multi_row_manager.get_current_row_data()
+        if not row_data:
+            return
+        
+        # Reset UI state for new row
+        self.current_grid = []
+        self.grid_generator.clear_corner_points()
+        
+        # Load saved images if available
+        if row_data['cropped_image']:
+            self.image_processor.processed_image = row_data['cropped_image']
+            self.display_current_image()
+            self.parameter_panel.enable_corners_button(True)
+        
+        # Load saved corners if available
+        if len(row_data['corners']) == 4:
+            self.grid_generator.set_corner_points(row_data['corners'])
+            self.parameter_panel.update_corners_status(4)
+            self.parameter_panel.enable_generate_button(True)
+        else:
+            self.parameter_panel.update_corners_status(0)
+        
+        # Load tube parameters
+        self.parameter_panel.tubes_var.set(row_data['num_tubes'])
+        self.parameter_panel.balls_var.set(row_data['balls_per_tube'])
+        self.parameter_panel.update_expected_total()
+        
+        # Load grid if available
+        if row_data['grid']:
+            self.current_grid = row_data['grid']
+            self.display_grid_visualization()
+            self.parameter_panel.update_grid_status(len(self.current_grid))
+            self.parameter_panel.enable_analyze_button(True)
+        
+        # Load colors if available
+        if row_data['colors']:
+            self.display_analysis_results(row_data['colors'])
+        else:
+            self.clear_results()
+    
+    def update_multi_row_ui(self):
+        """Update UI for multi-row mode"""
+        if not self.is_multi_row_mode:
+            return
+        
+        current_row = self.multi_row_manager.get_current_row_number()
+        total_rows = self.multi_row_manager.num_rows
+        
+        self.parameter_panel.update_progress(current_row, total_rows)
+        
+        is_first = self.multi_row_manager.is_first_row()
+        is_last = self.multi_row_manager.is_last_row()
+        can_finish = self.multi_row_manager.can_finish_all_rows()
+        
+        self.parameter_panel.update_navigation_buttons(is_first, is_last, can_finish)
+    
+    def display_aggregated_results(self):
+        """Display aggregated results from all rows"""
+        results = self.multi_row_manager.get_aggregated_results()
+        
+        # Clear previous results
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        
+        # Title
+        title = tk.Label(self.results_frame, text="Résultats Globaux", 
+                        font=("Arial", 16, "bold"))
+        title.pack(pady=(0, 10))
+        
+        # Summary
+        summary_frame = tk.Frame(self.results_frame)
+        summary_frame.pack(fill=tk.X, pady=5)
+        
+        summary_text = f"Rangées analysées: {results['completed_rows']}/{results['total_rows']}\n"
+        summary_text += f"Total éprouvettes: {results['total_tubes']}\n"
+        summary_text += f"Total balles détectées: {results['total_balls']}"
+        
+        tk.Label(summary_frame, text=summary_text, 
+                font=("Arial", 12), justify=tk.LEFT).pack()
+        
+        # Colors by row
+        if results['colors_by_row']:
+            colors_frame = tk.Frame(self.results_frame)
+            colors_frame.pack(fill=tk.X, pady=10)
+            
+            tk.Label(colors_frame, text="Couleurs par rangée:", 
+                    font=("Arial", 12, "bold")).pack(anchor=tk.W)
+            
+            for color_key, balls in results['colors_by_row'].items():
+                color_frame = tk.Frame(colors_frame)
+                color_frame.pack(fill=tk.X, pady=2)
+                
+                # Extract color info
+                row_info, color = color_key.split('_', 1)
+                color_rgb = eval(color) if color.startswith('(') else (128, 128, 128)
+                
+                # Color sample
+                canvas = tk.Canvas(color_frame, width=25, height=25)
+                color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
+                canvas.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black")
+                canvas.pack(side=tk.LEFT, padx=(0, 10))
+                
+                # Label
+                tk.Label(color_frame, text=f"{row_info}: {len(balls)} balles").pack(side=tk.LEFT)
+    
+    def create_grid_matrix(self):
+        """Create matrix representation of grid"""
+        if not self.current_grid:
+            return []
+        
+        # Get tube parameters
+        num_tubes, balls_per_tube = self.parameter_panel.get_tube_parameters()
+        
+        # Create matrix
+        matrix = []
+        for tube_idx in range(num_tubes):
+            tube_column = []
+            for ball_idx in range(balls_per_tube):
+                # Find matching grid point
+                grid_point = None
+                for circle in self.current_grid:
+                    if circle.get('tube_idx') == tube_idx and circle.get('ball_idx') == ball_idx:
+                        grid_point = {
+                            'x': circle['x'],
+                            'y': circle['y'],
+                            'radius': circle['radius']
+                        }
+                        break
+                tube_column.append(grid_point)
+            matrix.append(tube_column)
+        
+        return matrix
+    
+    def create_color_matrix(self, color_groups):
+        """Create matrix representation of colors"""
+        if not self.current_grid or not color_groups:
+            return []
+        
+        # Get tube parameters
+        num_tubes, balls_per_tube = self.parameter_panel.get_tube_parameters()
+        
+        # Create matrix
+        matrix = []
+        for tube_idx in range(num_tubes):
+            tube_column = []
+            for ball_idx in range(balls_per_tube):
+                # Find color for this position
+                found_color = None
+                for color, balls in color_groups.items():
+                    for ball in balls:
+                        # Find corresponding grid position
+                        for circle in self.current_grid:
+                            if (abs(circle['x'] - ball['x']) < 10 and 
+                                abs(circle['y'] - ball['y']) < 10 and
+                                circle.get('tube_idx') == tube_idx and
+                                circle.get('ball_idx') == ball_idx):
+                                found_color = color
+                                break
+                        if found_color:
+                            break
+                    if found_color:
+                        break
+                tube_column.append(found_color)
+            matrix.append(tube_column)
+        
+        return matrix
+    
+    def show_final_results_window(self):
+        """Show final results in separate window"""
+        results = self.multi_row_manager.get_aggregated_results()
+        
+        # Create new window
+        results_window = tk.Toplevel(self.root)
+        results_window.title("Résultats Finaux - Ball Sort Puzzle")
+        results_window.geometry("800x600")
+        results_window.grab_set()
+        
+        # Main frame with scrollbar
+        main_frame = tk.Frame(results_window)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        canvas = tk.Canvas(main_frame)
+        scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Title
+        title = tk.Label(scrollable_frame, text="Résultats Finaux", 
+                        font=("Arial", 20, "bold"), fg="#2196F3")
+        title.pack(pady=(0, 20))
+        
+        # Summary stats
+        summary_frame = tk.LabelFrame(scrollable_frame, text="Résumé", font=("Arial", 14, "bold"))
+        summary_frame.pack(fill=tk.X, pady=10)
+        
+        stats_text = f"""Rangées analysées: {results['completed_rows']}/{results['total_rows']}
+Total éprouvettes: {results['total_tubes']}
+Total balles détectées: {results['total_balls']}"""
+        
+        tk.Label(summary_frame, text=stats_text, font=("Arial", 12), 
+                justify=tk.LEFT).pack(padx=10, pady=10)
+        
+        # Color details by row
+        if results['colors_by_row']:
+            colors_frame = tk.LabelFrame(scrollable_frame, text="Détail des Couleurs", 
+                                       font=("Arial", 14, "bold"))
+            colors_frame.pack(fill=tk.X, pady=10)
+            
+            # Group by row
+            rows_colors = {}
+            for color_key, balls in results['colors_by_row'].items():
+                row_info, color = color_key.split('_', 1)
+                if row_info not in rows_colors:
+                    rows_colors[row_info] = []
+                rows_colors[row_info].append((color, len(balls)))
+            
+            for row_info, colors in rows_colors.items():
+                row_frame = tk.Frame(colors_frame)
+                row_frame.pack(fill=tk.X, padx=10, pady=5)
+                
+                tk.Label(row_frame, text=f"{row_info}:", font=("Arial", 12, "bold")).pack(anchor=tk.W)
+                
+                colors_grid = tk.Frame(row_frame)
+                colors_grid.pack(fill=tk.X, padx=20)
+                
+                for i, (color, count) in enumerate(colors):
+                    color_item = tk.Frame(colors_grid)
+                    color_item.pack(fill=tk.X, pady=2)
+                    
+                    # Color sample
+                    try:
+                        color_rgb = eval(color) if color.startswith('(') else (128, 128, 128)
+                        canvas_color = tk.Canvas(color_item, width=30, height=30)
+                        color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
+                        canvas_color.create_rectangle(0, 0, 30, 30, fill=color_hex, outline="black")
+                        canvas_color.pack(side=tk.LEFT, padx=(0, 10))
+                        
+                        tk.Label(color_item, text=f"Couleur {i+1}: {count} balles").pack(side=tk.LEFT)
+                    except:
+                        tk.Label(color_item, text=f"Couleur {i+1}: {count} balles").pack()
+        
+        # Close button
+        close_frame = tk.Frame(scrollable_frame)
+        close_frame.pack(pady=20)
+        
+        tk.Button(close_frame, text="Fermer", command=results_window.destroy,
+                 bg="#f44336", fg="white", font=("Arial", 12)).pack()
+        
+        # Pack scrollbar elements
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+    
+    def display_aggregated_results(self):
+        """Display aggregated results from all rows"""
+        # Show in separate window instead of main UI
+        self.show_final_results_window()
     
     def run(self):
         """Run app"""

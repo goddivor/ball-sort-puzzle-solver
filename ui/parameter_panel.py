@@ -14,12 +14,17 @@ class ParameterPanel:
         self.on_corners_requested = None
         self.on_generate_grid = None
         self.on_analyze_colors = None
+        self.on_start_configuration = None
+        self.on_next_row = None
+        self.on_previous_row = None
+        self.on_finish_all_rows = None
         
         # Parameters
         self.grid_spacing = 30
         self.color_tolerance = 40
         self.num_tubes = 5
         self.balls_per_tube = 4
+        self.num_rows = 1
         
         self.setup_panel()
     
@@ -35,6 +40,14 @@ class ParameterPanel:
                         font=("Arial", 14, "bold"), bg="#f0f0f0")
         title.pack(pady=10)
         
+        # Step 0: Rows configuration
+        self.setup_rows_section()
+        
+        # Multi-row progress
+        self.progress_label = tk.Label(self.panel, text="", 
+                                     font=("Arial", 12, "bold"), bg="#f0f0f0", fg="#2196F3")
+        self.progress_label.pack(pady=5)
+        
         # Step 1: Crop
         self.setup_crop_section()
         
@@ -47,8 +60,58 @@ class ParameterPanel:
         # Step 4: Analysis
         self.setup_analysis_section()
         
+        # Navigation (for multi-row)
+        self.setup_navigation_section()
+        
         # Status
         self.setup_status_section()
+    
+    def setup_rows_section(self):
+        """Setup rows configuration section"""
+        frame = tk.LabelFrame(self.panel, text="0. Configuration", bg="#f0f0f0")
+        frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Number of rows
+        rows_frame = tk.Frame(frame, bg="#f0f0f0")
+        rows_frame.pack(fill=tk.X, pady=2)
+        
+        tk.Label(rows_frame, text="Nb rangées:", bg="#f0f0f0").pack(side=tk.LEFT)
+        self.rows_var = tk.IntVar(value=self.num_rows)
+        rows_spinbox = tk.Spinbox(rows_frame, from_=1, to=5, width=5,
+                                 textvariable=self.rows_var, command=self.on_rows_change)
+        rows_spinbox.pack(side=tk.RIGHT)
+        
+        # Start button
+        self.start_button = tk.Button(frame, text="Démarrer Configuration", 
+                                     command=self.request_start_configuration,
+                                     bg="#673AB7", fg="white")
+        self.start_button.pack(pady=5)
+        self.start_button.config(state=tk.DISABLED)
+    
+    def setup_navigation_section(self):
+        """Setup navigation section for multi-row"""
+        self.nav_frame = tk.LabelFrame(self.panel, text="Navigation", bg="#f0f0f0")
+        self.nav_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.nav_frame.pack_forget()  # Hidden by default
+        
+        nav_buttons = tk.Frame(self.nav_frame, bg="#f0f0f0")
+        nav_buttons.pack(fill=tk.X, pady=5)
+        
+        self.prev_button = tk.Button(nav_buttons, text="← Précédent", 
+                                    command=self.request_previous_row,
+                                    bg="#FF9800", fg="white")
+        self.prev_button.pack(side=tk.LEFT, padx=5)
+        
+        self.next_button = tk.Button(nav_buttons, text="Suivant →", 
+                                    command=self.request_next_row,
+                                    bg="#4CAF50", fg="white")
+        self.next_button.pack(side=tk.RIGHT, padx=5)
+        
+        self.finish_button = tk.Button(nav_buttons, text="Terminer", 
+                                      command=self.request_finish_all_rows,
+                                      bg="#E91E63", fg="white")
+        self.finish_button.pack(side=tk.RIGHT, padx=5)
+        self.finish_button.pack_forget()  # Hidden initially
     
     def setup_crop_section(self):
         """Setup crop section"""
@@ -143,12 +206,18 @@ class ParameterPanel:
         tk.Button(frame, text="Effacer tout", command=self.clear_all,
                  bg="#f44336", fg="white").pack()
     
-    def set_callbacks(self, crop_callback, corners_callback, grid_callback, analyze_callback):
+    def set_callbacks(self, crop_callback, corners_callback, grid_callback, analyze_callback, 
+                     start_config_callback=None, next_row_callback=None, 
+                     prev_row_callback=None, finish_callback=None):
         """Set callback functions"""
         self.on_crop_requested = crop_callback
         self.on_corners_requested = corners_callback
         self.on_generate_grid = grid_callback
         self.on_analyze_colors = analyze_callback
+        self.on_start_configuration = start_config_callback
+        self.on_next_row = next_row_callback
+        self.on_previous_row = prev_row_callback
+        self.on_finish_all_rows = finish_callback
     
     def enable_crop_button(self, enabled=True):
         state = tk.NORMAL if enabled else tk.DISABLED
@@ -244,3 +313,68 @@ class ParameterPanel:
     
     def get_tube_parameters(self):
         return self.num_tubes, self.balls_per_tube
+    
+    def get_num_rows(self):
+        return self.num_rows
+    
+    def on_rows_change(self):
+        self.num_rows = self.rows_var.get()
+        # Always enable start button when rows are configured
+        self.start_button.config(state=tk.NORMAL)
+    
+    def request_start_configuration(self):
+        if self.on_start_configuration:
+            self.on_start_configuration()
+    
+    def request_next_row(self):
+        if self.on_next_row:
+            self.on_next_row()
+    
+    def request_previous_row(self):
+        if self.on_previous_row:
+            self.on_previous_row()
+    
+    def request_finish_all_rows(self):
+        if self.on_finish_all_rows:
+            self.on_finish_all_rows()
+    
+    def enable_start_button(self, enabled=True):
+        state = tk.NORMAL if enabled else tk.DISABLED
+        self.start_button.config(state=state)
+    
+    def show_navigation(self, show=True):
+        if show:
+            self.nav_frame.pack(fill=tk.X, padx=10, pady=5, before=self.status_text.master)
+        else:
+            self.nav_frame.pack_forget()
+    
+    def update_navigation_buttons(self, is_first_row=True, is_last_row=True, can_finish=False):
+        # Previous button
+        if is_first_row:
+            self.prev_button.config(state=tk.DISABLED)
+        else:
+            self.prev_button.config(state=tk.NORMAL)
+        
+        # Next button
+        if is_last_row:
+            self.next_button.pack_forget()
+            if can_finish:
+                self.finish_button.pack(side=tk.RIGHT, padx=5)
+        else:
+            self.finish_button.pack_forget()
+            self.next_button.pack(side=tk.RIGHT, padx=5)
+            self.next_button.config(state=tk.NORMAL)
+    
+    def update_progress(self, current_row=1, total_rows=1):
+        if total_rows > 1:
+            self.progress_label.config(text=f"Rangée {current_row}/{total_rows}")
+        else:
+            self.progress_label.config(text="")
+    
+    def enable_multi_row_mode(self, enabled=True):
+        """Enable or disable multi-row specific controls"""
+        if enabled:
+            self.start_button.config(state=tk.NORMAL)
+        else:
+            self.start_button.config(state=tk.DISABLED)
+            self.show_navigation(False)
