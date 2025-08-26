@@ -287,10 +287,20 @@ class ParameterPanel:
     def on_tubes_change(self):
         self.num_tubes = self.tubes_var.get()
         self.update_expected_total()
+        # Callback to parent to save changes
+        if hasattr(self, '_on_tube_params_changed') and self._on_tube_params_changed:
+            self._on_tube_params_changed()
     
     def on_balls_change(self):
         self.balls_per_tube = self.balls_var.get()
         self.update_expected_total()
+        # Callback to parent to save changes
+        if hasattr(self, '_on_tube_params_changed') and self._on_tube_params_changed:
+            self._on_tube_params_changed()
+    
+    def set_tube_params_change_callback(self, callback):
+        """Set callback for tube parameter changes"""
+        self._on_tube_params_changed = callback
     
     def update_expected_total(self):
         total = self.num_tubes * self.balls_per_tube

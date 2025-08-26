@@ -60,6 +60,9 @@ class BallSortSolver:
             self.finish_all_rows
         )
         
+        # Set callback for tube parameter changes
+        self.parameter_panel.set_tube_params_change_callback(self.on_tube_params_changed)
+        
         # Tools
         self.crop_tool = CropTool(self.root, self.on_crop_complete)
         self.corner_selector = CornerSelector(self.root, self.on_corners_complete)
@@ -394,7 +397,9 @@ class BallSortSolver:
         if len(corners) == 4:
             self.multi_row_manager.set_current_row_corners(corners)
         
-        num_tubes, balls_per_tube = self.parameter_panel.get_tube_parameters()
+        # Get the actual current values from the UI spinboxes
+        num_tubes = self.parameter_panel.tubes_var.get()
+        balls_per_tube = self.parameter_panel.balls_var.get()
         self.multi_row_manager.set_current_row_tube_params(num_tubes, balls_per_tube)
         
         if self.current_grid:
@@ -663,6 +668,14 @@ Total balles détectées: {results['total_balls']}"""
         # Pack scrollbar elements
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+    
+    def on_tube_params_changed(self):
+        """Called when tube parameters change in UI"""
+        if self.is_multi_row_mode:
+            # Save the current parameters immediately
+            num_tubes = self.parameter_panel.tubes_var.get()
+            balls_per_tube = self.parameter_panel.balls_var.get()
+            self.multi_row_manager.set_current_row_tube_params(num_tubes, balls_per_tube)
     
     def display_aggregated_results(self):
         """Display aggregated results from all rows"""
