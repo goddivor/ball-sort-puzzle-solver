@@ -84,10 +84,9 @@ class MultiRowLayoutDialog:
         """Create the dialog window"""
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title("Configuration Multi-Rangées")
-        self.dialog.geometry("900x700")
+        self.dialog.state('zoomed')  # Full screen on Windows
         self.dialog.grab_set()
         self.dialog.resizable(True, True)
-        self.dialog.minsize(800, 600)
         
         # Main container
         main_frame = ctk.CTkFrame(self.dialog)
@@ -210,31 +209,29 @@ class MultiRowLayoutDialog:
         frame = ctk.CTkFrame(parent)
         
         minus_btn = ctk.CTkButton(frame, text="-", width=25, height=25,
-                                 command=lambda: self._spinbox_change(variable, -1, min_val, max_val, callback))
+                                 command=lambda: self._spinbox_change(frame, variable, -1, min_val, max_val, callback))
         minus_btn.pack(side="left")
         
         label = ctk.CTkLabel(frame, text=str(variable.get()), width=30)
         label.pack(side="left", padx=5)
         
         plus_btn = ctk.CTkButton(frame, text="+", width=25, height=25,
-                                command=lambda: self._spinbox_change(variable, 1, min_val, max_val, callback))
+                                command=lambda: self._spinbox_change(frame, variable, 1, min_val, max_val, callback))
         plus_btn.pack(side="left")
         
         # Store label reference for updates
         frame.label = label
         return frame
     
-    def _spinbox_change(self, variable, change, min_val, max_val, callback):
+    def _spinbox_change(self, frame, variable, change, min_val, max_val, callback):
         """Handle spinbox value change"""
         current = variable.get()
         new_value = max(min_val, min(max_val, current + change))
         variable.set(new_value)
         
-        # Update display
-        for child in variable.master.winfo_children():
-            if hasattr(child, 'label'):
-                child.label.configure(text=str(new_value))
-                break
+        # Update display using the passed frame
+        if hasattr(frame, 'label'):
+            frame.label.configure(text=str(new_value))
         
         callback()
     
