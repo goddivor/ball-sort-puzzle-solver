@@ -143,7 +143,10 @@ class GameVisualDisplay:
         # Start from bottom of tube
         start_y = tube_bottom - 30 - self.BALL_RADIUS
         
-        for i, ball_data in enumerate(balls):
+        # Reverse the balls list to show correct order (bottom to top)
+        reversed_balls = list(reversed(balls))
+        
+        for i, ball_data in enumerate(reversed_balls):
             # Calculate ball position (from bottom up)
             ball_y = start_y - (i * ball_spacing)
             ball_x = tube_x
@@ -160,19 +163,14 @@ class GameVisualDisplay:
                                   ball_y + self.BALL_RADIUS + shadow_offset,
                                   fill='#cccccc', outline='')
             
-            # Draw main ball
+            # Draw main ball (solid color, no highlight)
             self.canvas.create_oval(ball_x - self.BALL_RADIUS, ball_y - self.BALL_RADIUS,
                                   ball_x + self.BALL_RADIUS, ball_y + self.BALL_RADIUS,
                                   fill=color_hex, outline='black', width=2)
             
-            # Add highlight for 3D effect
-            highlight_size = self.BALL_RADIUS // 3
-            self.canvas.create_oval(ball_x - highlight_size, ball_y - highlight_size,
-                                  ball_x + highlight_size, ball_y + highlight_size,
-                                  fill='white', outline='', stipple='gray25')
-            
-            # Ball level indicator (small text)
-            level_text = f"N{ball_data['level_index'] + 1}"
+            # Ball level indicator (small text) - show visual level (bottom = 1, top = max)
+            visual_level = len(balls) - i  # Since we reversed the list, adjust the level display
+            level_text = f"N{visual_level}"
             self.canvas.create_text(ball_x + self.BALL_RADIUS + 15, ball_y,
                                   text=level_text, font=('Arial', 8), fill='#666666')
     
