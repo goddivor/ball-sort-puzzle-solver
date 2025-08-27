@@ -23,6 +23,8 @@ from multi_row_manager import MultiRowManager
 from parameter_panel import ParameterPanel
 from crop_tool import CropTool
 from corner_selector import CornerSelector
+from game_model import GameModelGenerator
+from game_generator_dialog import GameGeneratorDialog
 
 class BallSortSolver:
     def __init__(self):
@@ -733,13 +735,21 @@ Total balles détectées: {results['total_balls']}"""
                     except:
                         ctk.CTkLabel(color_item, text=f"Couleur {i+1}: {count} balles").pack(pady=5)
         
-        # Close button
-        close_frame = ctk.CTkFrame(scrollable_frame)
-        close_frame.pack(pady=20)
+        # Buttons
+        buttons_frame = ctk.CTkFrame(scrollable_frame)
+        buttons_frame.pack(pady=20)
         
-        ctk.CTkButton(close_frame, text="❌ Fermer", command=results_window.destroy,
+        # Generate button
+        generate_btn = ctk.CTkButton(buttons_frame, text="🎮 Générer Modèle", 
+                                   command=lambda: self.open_game_generator_multi_row(results, results_window),
+                                   fg_color="#4CAF50", hover_color="#45a049",
+                                   font=ctk.CTkFont(size=12, weight="bold"), height=35)
+        generate_btn.pack(side="left", padx=(0, 10))
+        
+        # Close button
+        ctk.CTkButton(buttons_frame, text="❌ Fermer", command=results_window.destroy,
                      fg_color="#f44336", hover_color="#da190b",
-                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack()
+                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack(side="left")
     
     def on_tube_params_changed(self):
         """Called when tube parameters change in UI"""
@@ -847,18 +857,226 @@ Couleurs différentes: {total_colors}"""
                     font=ctk.CTkFont(size=11, weight="bold"),
                     text_color=comparison_color).pack(padx=10, pady=(0, 15))
         
-        # Close button
-        close_frame = ctk.CTkFrame(scrollable_frame)
-        close_frame.pack(pady=15)
+        # Buttons
+        buttons_frame = ctk.CTkFrame(scrollable_frame)
+        buttons_frame.pack(pady=15)
         
-        ctk.CTkButton(close_frame, text="❌ Fermer", command=results_window.destroy,
+        # Generate button
+        generate_btn = ctk.CTkButton(buttons_frame, text="🎮 Générer Modèle", 
+                                   command=lambda: self.open_game_generator(row_data, results_window),
+                                   fg_color="#4CAF50", hover_color="#45a049",
+                                   font=ctk.CTkFont(size=12, weight="bold"), height=35)
+        generate_btn.pack(side="left", padx=(0, 10))
+        
+        # Close button  
+        ctk.CTkButton(buttons_frame, text="❌ Fermer", command=results_window.destroy,
                      fg_color="#f44336", hover_color="#da190b",
-                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack()
+                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack(side="left")
     
     def display_aggregated_results(self):
         """Display aggregated results from all rows"""
         # Show in separate window instead of main UI
         self.show_final_results_window()
+    
+    def open_game_generator(self, row_data, parent_window):
+        """Open game generator dialog for single row"""
+        total_balls = sum(len(balls) for balls in row_data['colors'].values())
+        detected_tubes = row_data['num_tubes']
+        balls_per_tube = row_data['balls_per_tube']
+        
+        dialog = GameGeneratorDialog(parent_window, 
+                                   lambda result: self.generate_single_row_model(result, row_data, parent_window))
+        dialog.show_dialog(detected_tubes, total_balls, balls_per_tube)
+    
+    def open_game_generator_multi_row(self, results, parent_window):
+        """Open game generator dialog for multi-row results"""
+        total_balls = results['total_balls']
+        detected_tubes = results['total_tubes']
+        # Estimate balls per tube from total configuration
+        balls_per_tube = 4  # Default, could be calculated from data
+        
+        dialog = GameGeneratorDialog(parent_window,
+                                   lambda result: self.generate_multi_row_model(result, results, parent_window))
+        dialog.show_dialog(detected_tubes, total_balls, balls_per_tube)
+    
+    def generate_single_row_model(self, generator_params, row_data, parent_window):
+        """Generate game model from single row data"""
+        try:
+            # Create analysis results in the expected format
+            analysis_data = {
+                'colors': row_data['colors'],
+                'num_tubes': row_data['num_tubes']
+            }
+            
+            # Generate game state
+            game_state = GameModelGenerator.create_game_state(
+                analysis_data,
+                generator_params['empty_tubes_count'],
+                generator_params['balls_per_tube']
+            )
+            
+            # Show game model window
+            self.show_game_model_window(game_state, parent_window)
+            
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Erreur lors de la génération du modèle: {str(e)}")
+    
+    def generate_multi_row_model(self, generator_params, results, parent_window):
+        """Generate game model from multi-row data"""
+        try:
+            # Generate game state using multi-row results
+            game_state = GameModelGenerator.create_game_state(
+                results,
+                generator_params['empty_tubes_count'],
+                generator_params['balls_per_tube']
+            )
+            
+            # Show game model window
+            self.show_game_model_window(game_state, parent_window)
+            
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Erreur lors de la génération du modèle: {str(e)}")
+    
+    def show_game_model_window(self, game_state, parent_window):
+        """Display the generated game model in a new window"""
+        # Create new window
+        model_window = ctk.CTkToplevel(parent_window)
+        model_window.title("Modèle de Jeu Généré - Ball Sort Puzzle")
+        model_window.geometry("800x700")
+        model_window.grab_set()
+        
+        # Main scrollable frame
+        scrollable_frame = ctk.CTkScrollableFrame(model_window)
+        scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Title
+        title = ctk.CTkLabel(scrollable_frame, text="🎮 Modèle de Jeu Généré", 
+                           font=ctk.CTkFont(size=20, weight="bold"), text_color="#2196F3")
+        title.pack(pady=(0, 20))
+        
+        # Game statistics
+        stats_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        stats_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(stats_frame, text="📊 Statistiques du Jeu",
+                   font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(15, 10))
+        
+        game_dict = game_state.to_dict()
+        completion = game_dict['completion_status']
+        
+        stats_text = f"""Total éprouvettes: {game_dict['total_tubes']}
+Éprouvettes avec balles: {game_dict['tubes_with_balls']}
+Éprouvettes vides: {game_dict['empty_tubes']}
+Total balles: {game_dict['total_balls']}
+Capacité par éprouvette: {game_dict['balls_per_tube']} balles
+
+État du jeu:
+• Éprouvettes complètes: {completion['complete_tubes']}
+• Éprouvettes pures: {completion['pure_tubes']}
+• Pourcentage de completion: {completion['completion_percentage']:.1f}%"""
+        
+        ctk.CTkLabel(stats_frame, text=stats_text, font=ctk.CTkFont(size=11),
+                   justify="left").pack(padx=15, pady=(0, 15))
+        
+        # Tubes visualization
+        tubes_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+        tubes_frame.pack(fill="x", pady=10)
+        
+        ctk.CTkLabel(tubes_frame, text="🧪 Configuration des Éprouvettes",
+                   font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(15, 10))
+        
+        # Create tubes display
+        for tube_data in game_dict['tubes']:
+            tube_frame = ctk.CTkFrame(tubes_frame, corner_radius=8)
+            tube_frame.pack(fill="x", padx=15, pady=5)
+            
+            # Tube header
+            tube_header = ctk.CTkFrame(tube_frame)
+            tube_header.pack(fill="x", padx=10, pady=10)
+            
+            tube_title = f"Éprouvette {tube_data['index'] + 1}"
+            if tube_data['is_empty']:
+                tube_title += " (Vide)"
+            elif tube_data['is_complete']:
+                tube_title += " ✅ Complète"
+            elif tube_data['is_pure']:
+                tube_title += " 🔸 Pure"
+            
+            ctk.CTkLabel(tube_header, text=tube_title,
+                       font=ctk.CTkFont(size=12, weight="bold")).pack(side="left")
+            
+            space_info = f"{tube_data['ball_count']}/{tube_data['capacity']} balles"
+            ctk.CTkLabel(tube_header, text=space_info,
+                       font=ctk.CTkFont(size=10), text_color="gray60").pack(side="right")
+            
+            # Balls in tube
+            if tube_data['balls']:
+                balls_frame = ctk.CTkFrame(tube_frame)
+                balls_frame.pack(fill="x", padx=10, pady=(0, 10))
+                
+                for i, ball_data in enumerate(tube_data['balls']):
+                    ball_frame = ctk.CTkFrame(balls_frame)
+                    ball_frame.pack(fill="x", pady=2)
+                    
+                    # Color sample
+                    color_rgb = ball_data['color']
+                    canvas_color = ctk.CTkCanvas(ball_frame, width=25, height=25)
+                    color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
+                    canvas_color.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black", width=2)
+                    canvas_color.pack(side="left", padx=(10, 10))
+                    
+                    # Ball info
+                    ball_info = f"Niveau {ball_data['level_index'] + 1}: {ball_data['color_name']}"
+                    pos_info = f"Position: ({ball_data['position'][0]}, {ball_data['position'][1]})"
+                    
+                    info_frame = ctk.CTkFrame(ball_frame)
+                    info_frame.pack(side="left", fill="x", expand=True, padx=(0, 10))
+                    
+                    ctk.CTkLabel(info_frame, text=ball_info, font=ctk.CTkFont(size=10)).pack(anchor="w")
+                    ctk.CTkLabel(info_frame, text=pos_info, font=ctk.CTkFont(size=9), 
+                               text_color="gray60").pack(anchor="w")
+        
+        # Color statistics
+        if game_dict['color_statistics']:
+            colors_frame = ctk.CTkFrame(scrollable_frame, corner_radius=10)
+            colors_frame.pack(fill="x", pady=10)
+            
+            ctk.CTkLabel(colors_frame, text="🎨 Statistiques des Couleurs",
+                       font=ctk.CTkFont(size=14, weight="bold")).pack(pady=(15, 10))
+            
+            for color_key, color_data in game_dict['color_statistics'].items():
+                color_frame = ctk.CTkFrame(colors_frame, corner_radius=8)
+                color_frame.pack(fill="x", padx=15, pady=5)
+                
+                # Color header
+                color_header = ctk.CTkFrame(color_frame)
+                color_header.pack(fill="x", padx=10, pady=10)
+                
+                # Color sample
+                color_rgb = eval(color_key) if color_key.startswith('(') else (128, 128, 128)
+                canvas_color = ctk.CTkCanvas(color_header, width=30, height=30)
+                color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
+                canvas_color.create_rectangle(0, 0, 30, 30, fill=color_hex, outline="black", width=2)
+                canvas_color.pack(side="left", padx=(0, 15))
+                
+                # Color info
+                color_info = f"{color_data['color_name']}: {color_data['count']} balles"
+                tubes_info = f"Présente dans {len(color_data['tubes'])} éprouvette(s)"
+                
+                info_frame = ctk.CTkFrame(color_header)
+                info_frame.pack(side="left", fill="x", expand=True)
+                
+                ctk.CTkLabel(info_frame, text=color_info, font=ctk.CTkFont(size=11, weight="bold")).pack(anchor="w")
+                ctk.CTkLabel(info_frame, text=tubes_info, font=ctk.CTkFont(size=10), 
+                           text_color="gray60").pack(anchor="w")
+        
+        # Close button
+        close_frame = ctk.CTkFrame(scrollable_frame)
+        close_frame.pack(pady=20)
+        
+        ctk.CTkButton(close_frame, text="❌ Fermer", command=model_window.destroy,
+                     fg_color="#f44336", hover_color="#da190b",
+                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack()
     
     def run(self):
         """Run app"""
