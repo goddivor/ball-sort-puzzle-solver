@@ -191,6 +191,56 @@ class GameModelGenerator:
     """Generates game model from analysis results"""
     
     @staticmethod
+    def create_game_state_from_matrices(grid_matrix, color_matrix, empty_tubes_count, balls_per_tube):
+        """
+        Create game state from grid and color matrices (the correct way!)
+        
+        Args:
+            grid_matrix: Matrix with grid positions [tube_idx][ball_idx] = {x, y, radius}
+            color_matrix: Matrix with colors [tube_idx][ball_idx] = (r, g, b) or None
+            empty_tubes_count: Number of empty tubes
+            balls_per_tube: Capacity per tube
+        
+        Returns:
+            GameState object with accurate reconstruction
+        """
+        if not grid_matrix or not color_matrix:
+            raise ValueError("Grid matrix and color matrix are required")
+        
+        tubes_with_balls = len(grid_matrix)
+        game_state = GameState(tubes_with_balls, empty_tubes_count, balls_per_tube)
+        
+        # Create tubes with balls based on matrices
+        for tube_idx in range(tubes_with_balls):
+            tube = Tube(tube_idx, balls_per_tube, is_empty=False)
+            
+            # Add balls from bottom to top (ball_idx 0 = bottom)
+            for ball_idx in range(balls_per_tube):
+                if ball_idx < len(color_matrix[tube_idx]):
+                    color = color_matrix[tube_idx][ball_idx]
+                    
+                    if color is not None:  # There's a ball at this position
+                        # Get position from grid matrix
+                        grid_pos = grid_matrix[tube_idx][ball_idx] if ball_idx < len(grid_matrix[tube_idx]) else None
+                        if grid_pos:
+                            position = (grid_pos['x'], grid_pos['y'])
+                        else:
+                            position = (0, 0)  # Fallback position
+                        
+                        # Create ball
+                        ball = Ball(color, position, tube_idx, ball_idx)
+                        tube.add_ball(ball)
+            
+            game_state.add_tube(tube)
+        
+        # Create empty tubes
+        for i in range(empty_tubes_count):
+            empty_tube = Tube(tubes_with_balls + i, balls_per_tube, is_empty=True)
+            game_state.add_tube(empty_tube)
+        
+        return game_state
+    
+    @staticmethod
     def create_game_state(analysis_results, empty_tubes_count, balls_per_tube):
         """
         Create a complete game state from analysis results

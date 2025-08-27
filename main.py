@@ -44,6 +44,8 @@ class BallSortSolver:
         self.current_grid = []
         self.photo = None
         self.is_multi_row_mode = False
+        self.current_grid_matrix = []
+        self.current_color_matrix = []
         
         self.setup_ui()
     
@@ -256,15 +258,20 @@ class BallSortSolver:
             self.display_analysis_results(color_groups)
             self.parameter_panel.add_status_message(f"Analysé: {len(detected)} balles")
             
-            # Save colors to multi-row manager if in multi-row mode
+            # Always create and save matrices for accurate modeling
+            grid_matrix = self.create_grid_matrix()
+            color_matrix = self.create_color_matrix(color_groups)
+            
+            # Save to multi-row manager if in multi-row mode
             if self.is_multi_row_mode:
                 self.multi_row_manager.set_current_row_colors(color_groups)
-                # Create and save matrices
-                grid_matrix = self.create_grid_matrix()
-                color_matrix = self.create_color_matrix(color_groups)
                 self.multi_row_manager.set_current_row_matrices(grid_matrix, color_matrix)
                 # Update UI to show "Terminer" button if on last row
                 self.update_multi_row_ui()
+            else:
+                # Save matrices for single row mode too
+                self.current_grid_matrix = grid_matrix
+                self.current_color_matrix = color_matrix
             
         except Exception as e:
             messagebox.showerror("Erreur", str(e))
@@ -917,15 +924,24 @@ Couleurs différentes: {total_colors}"""
     def generate_single_row_model(self, generator_params, row_data, parent_window):
         """Generate game model from single row data"""
         try:
-            # Create analysis results in the expected format
-            analysis_data = {
-                'colors': row_data['colors'],
-                'num_tubes': row_data['num_tubes']
-            }
+            # Get the matrices from the saved row data
+            grid_matrix = row_data.get('grid_matrix', [])
+            color_matrix = row_data.get('color_matrix', [])
             
-            # Generate game state
-            game_state = GameModelGenerator.create_game_state(
-                analysis_data,
+            if not grid_matrix or not color_matrix:
+                # If no matrices in row_data, use the locally saved ones
+                grid_matrix = getattr(self, 'current_grid_matrix', [])
+                color_matrix = getattr(self, 'current_color_matrix', [])
+                
+                # If still no matrices, create them from current state
+                if not grid_matrix or not color_matrix:
+                    grid_matrix = self.create_grid_matrix()
+                    color_matrix = self.create_color_matrix(row_data['colors'])
+            
+            # Generate game state using the real matrices
+            game_state = GameModelGenerator.create_game_state_from_matrices(
+                grid_matrix,
+                color_matrix,
                 generator_params['empty_tubes_count'],
                 generator_params['balls_per_tube']
             )
