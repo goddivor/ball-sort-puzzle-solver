@@ -37,16 +37,16 @@ class GameGeneratorDialog:
         """Create the dialog window"""
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title("Génération du Modèle de Jeu")
-        self.dialog.geometry("500x400")
+        self.dialog.geometry("500x500")
         self.dialog.grab_set()
         self.dialog.resizable(False, False)
         
         # Center the dialog
         self.dialog.transient(self.parent)
         
-        # Main container
+        # Main container - don't expand to leave room for buttons
         main_frame = ctk.CTkFrame(self.dialog)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=(20, 0))
         
         # Title
         title = ctk.CTkLabel(main_frame, 
@@ -143,27 +143,35 @@ Elles servent d'espace temporaire pour déplacer les balles."""
                                         justify="left")
         self.summary_label.pack(padx=20, pady=(0, 15))
         
-        # Buttons
-        button_frame = ctk.CTkFrame(main_frame)
-        button_frame.pack(fill="x", pady=(0, 10))
+        # Buttons section - separate from main content
+        buttons_container = ctk.CTkFrame(self.dialog, fg_color="transparent")
+        buttons_container.pack(side="bottom", fill="x", padx=20, pady=(0, 20))
         
+        # Buttons frame
+        button_frame = ctk.CTkFrame(buttons_container, corner_radius=10)
+        button_frame.pack(fill="x")
+        
+        # Cancel button
         cancel_btn = ctk.CTkButton(button_frame,
                                   text="❌ Annuler",
                                   command=self._cancel,
                                   fg_color="#f44336",
                                   hover_color="#da190b",
                                   font=ctk.CTkFont(size=12, weight="bold"),
-                                  height=40)
-        cancel_btn.pack(side="left", padx=(10, 5), pady=10)
+                                  height=40,
+                                  width=120)
+        cancel_btn.pack(side="left", padx=15, pady=15)
         
+        # Generate button
         generate_btn = ctk.CTkButton(button_frame,
                                    text="🎮 Générer le Modèle",
                                    command=self._generate,
                                    fg_color="#4CAF50",
                                    hover_color="#45a049",
                                    font=ctk.CTkFont(size=12, weight="bold"),
-                                   height=40)
-        generate_btn.pack(side="right", padx=(5, 10), pady=10)
+                                   height=40,
+                                   width=160)
+        generate_btn.pack(side="right", padx=15, pady=15)
     
     def _decrease_empty_tubes(self):
         """Decrease empty tubes count"""
