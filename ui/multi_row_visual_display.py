@@ -42,23 +42,23 @@ class MultiRowVisualDisplay:
         self.window.geometry(f"{window_width}x{window_height}")
         self.window.grab_set()
         
-        # Main frame
-        main_frame = ctk.CTkFrame(self.window)
-        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        # Main scrollable frame
+        main_scrollable = ctk.CTkScrollableFrame(self.window)
+        main_scrollable.pack(fill="both", expand=True, padx=15, pady=15)
         
         # Title
-        title = ctk.CTkLabel(main_frame, text="🎮 Modèle Multi-Rangées", 
+        title = ctk.CTkLabel(main_scrollable, text="🎮 Modèle Multi-Rangées", 
                            font=ctk.CTkFont(size=24, weight="bold"), text_color="#2196F3")
         title.pack(pady=(10, 20))
         
         # Info section
-        self._create_info_section(main_frame)
+        self._create_info_section(main_scrollable)
         
-        # Canvas for drawing the game
-        canvas_width = window_width - 60
-        canvas_height = window_height - 200
+        # Canvas for drawing the game (larger for scrolling)
+        canvas_width = max(1200, window_width - 60)
+        canvas_height = max(800, window_height)
         
-        self.canvas = Canvas(main_frame, width=canvas_width, height=canvas_height,
+        self.canvas = Canvas(main_scrollable, width=canvas_width, height=canvas_height,
                            bg='#f5f5f5', relief='sunken', bd=2)
         self.canvas.pack(pady=20)
         
@@ -66,7 +66,7 @@ class MultiRowVisualDisplay:
         self._draw_multi_row_game()
         
         # Close button
-        close_frame = ctk.CTkFrame(main_frame)
+        close_frame = ctk.CTkFrame(main_scrollable)
         close_frame.pack(pady=10)
         
         ctk.CTkButton(close_frame, text="❌ Fermer", command=self.window.destroy,
@@ -118,14 +118,25 @@ class MultiRowVisualDisplay:
     
     def _draw_row_section(self, x, y, width, height, row_info):
         """Draw a single row section with its tubes"""
+        # Determine section type and color
+        section_type = row_info.get('type', 'data')
+        if section_type == 'empty':
+            border_color = '#FF9800'
+            fill_color = '#fff3e0'
+            title_color = '#FF9800'
+        else:
+            border_color = '#2196F3'
+            fill_color = 'white'
+            title_color = '#2196F3'
+        
         # Draw section border
         self.canvas.create_rectangle(x, y, x + width, y + height,
-                                   outline='#2196F3', width=3, fill='white')
+                                   outline=border_color, width=3, fill=fill_color)
         
         # Section title
         title_y = y - 25
         self.canvas.create_text(x + width//2, title_y, text=f"📋 {row_info['name']}",
-                              font=('Arial', 12, 'bold'), fill='#2196F3', anchor='center')
+                              font=('Arial', 12, 'bold'), fill=title_color, anchor='center')
         
         # Calculate tube positions within section
         tubes_count = row_info['tubes_count']
@@ -138,23 +149,40 @@ class MultiRowVisualDisplay:
         start_x = x + self.SECTION_BORDER + (usable_width - (tubes_count - 1) * tube_spacing) // 2
         
         # Draw tubes for this row
-        colors_list = list(row_info['colors'].items())
+        section_type = row_info.get('type', 'data')
+        
         for tube_idx in range(tubes_count):
             tube_x = start_x + tube_idx * tube_spacing
             tube_y = y + self.SECTION_BORDER + 30
             
-            # Get colors for this tube (simplified - distribute colors across tubes)
-            tube_colors = []
-            if tube_idx < len(colors_list):
-                color, balls = colors_list[tube_idx]
-                # Create balls for this tube (limit to 4 balls max per tube)
-                for ball_idx in range(min(4, len(balls))):
-                    tube_colors.append({
-                        'color': color,
-                        'level_index': ball_idx
-                    })
-            
-            self._draw_tube_in_section(tube_x, tube_y, tube_colors, tube_idx + 1)
+            if section_type == 'empty':
+                # Draw empty tube
+                self._draw_empty_tube(tube_x, tube_y, tube_idx + 1)
+            else:
+                # Get colors for this tube from matrices if available
+                tube_colors = []
+                if 'color_matrix' in row_info and row_info['color_matrix']:
+                    color_matrix = row_info['color_matrix']
+                    if tube_idx < len(color_matrix):
+                        tube_column = color_matrix[tube_idx]
+                        for ball_idx, color in enumerate(tube_column):
+                            if color is not None:
+                                tube_colors.append({
+                                    'color': color,
+                                    'level_index': ball_idx
+                                })
+                else:
+                    # Fallback to old method
+                    colors_list = list(row_info['colors'].items())
+                    if tube_idx < len(colors_list):
+                        color, balls = colors_list[tube_idx]
+                        for ball_idx in range(min(4, len(balls))):
+                            tube_colors.append({
+                                'color': color,
+                                'level_index': ball_idx
+                            })
+                
+                self._draw_tube_in_section(tube_x, tube_y, tube_colors, tube_idx + 1)
     
     def _draw_tube_in_section(self, x, y, balls, tube_number):
         """Draw a single tube within a row section"""
@@ -217,8 +245,22 @@ class MultiRowVisualDisplay:
                                   fill=color_hex, outline='black', width=1)
     
     def _draw_empty_tubes_section(self, x, y, width, height):
-        """Draw the empty tubes section"""
-        # Draw section border
+        """Draw the empty tubes section or include it in the main grid"""
+        # Check if empty tubes are already included in the main grid layout
+        empty_tubes_in_grid = False
+        for row_data in self.layout_data['layout_grid'].values():
+            if row_data.get('type') == 'empty':
+                empty_tubes_in_grid = True
+                break
+        
+        if empty_tubes_in_grid:
+            # Show informational message that empty tubes are included in the grid
+            self.canvas.create_text(x + width//2, y + height//2, 
+                                  text="🧪 Les éprouvettes vides sont intégrées dans la grille ci-dessus",
+                                  font=('Arial', 14, 'bold'), fill='#FF9800', anchor='center')
+            return
+        
+        # Draw section border for standalone empty tubes
         self.canvas.create_rectangle(x, y, x + width, y + height,
                                    outline='#FF9800', width=3, fill='#fff3e0')
         

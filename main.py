@@ -916,7 +916,7 @@ Couleurs différentes: {total_colors}"""
         """Open multi-row layout dialog for multi-row results"""
         dialog = MultiRowLayoutDialog(parent_window,
                                     lambda result: self.generate_multi_row_model_with_layout(result, results, parent_window),
-                                    results)
+                                    self.multi_row_manager)  # Pass the manager, not results
         dialog.show_dialog()
     
     def generate_single_row_model(self, generator_params, row_data, parent_window):

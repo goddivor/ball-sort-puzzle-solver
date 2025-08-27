@@ -20,17 +20,51 @@ class MultiRowLayoutDialog:
         self.empty_tubes_count = 2  # Default
         self.layout_grid = {}  # {row_number: {'x': grid_x, 'y': grid_y}}
         
-        # Layout configuration
-        self.grid_cols = 2  # Default 2x2 grid
-        self.grid_rows = 2
+        # Calculate max tubes per row for empty tubes logic
+        self.max_tubes_per_row = max([row['tubes_count'] for row in self.rows_info], default=4)
+        
+        # Layout configuration (adjust based on number of rows + empty rows)
+        total_rows_needed = len(self.rows_info) + self._calculate_empty_rows_needed()
+        self.grid_cols = min(3, max(2, int(total_rows_needed ** 0.5)))  # Smart default
+        self.grid_rows = max(2, (total_rows_needed + self.grid_cols - 1) // self.grid_cols)
         self._initialize_default_layout()
     
     def _analyze_multi_row_data(self):
-        """Analyze multi-row data to extract info about each row"""
+        """Analyze multi-row data to extract info about each row using real matrices"""
         rows_info = []
         
-        if 'colors_by_row' in self.multi_row_data:
-            # Group by row
+        # Try to get matrices from the multi-row manager data first
+        if hasattr(self.multi_row_data, 'rows_data'):
+            # Direct access to MultiRowManager data
+            for row_idx, row_data in self.multi_row_data.rows_data.items():
+                if row_data.get('grid_matrix') and row_data.get('color_matrix'):
+                    # Use matrices to get accurate tube count
+                    grid_matrix = row_data['grid_matrix']
+                    color_matrix = row_data['color_matrix']
+                    tubes_count = len(grid_matrix) if grid_matrix else 0
+                    
+                    # Count total balls from color matrix
+                    total_balls = 0
+                    colors_dict = {}
+                    for tube_idx, tube_colors in enumerate(color_matrix):
+                        for ball_color in tube_colors:
+                            if ball_color is not None:
+                                total_balls += 1
+                                if ball_color not in colors_dict:
+                                    colors_dict[ball_color] = []
+                                colors_dict[ball_color].append({'tube': tube_idx, 'color': ball_color})
+                    
+                    rows_info.append({
+                        'name': f"Rangée {row_idx + 1}",
+                        'tubes_count': tubes_count,
+                        'total_balls': total_balls,
+                        'colors': colors_dict,
+                        'grid_matrix': grid_matrix,
+                        'color_matrix': color_matrix
+                    })
+        
+        # Fallback to old method if no matrices available
+        if not rows_info and 'colors_by_row' in self.multi_row_data:
             rows_data = {}
             for color_key, balls in self.multi_row_data['colors_by_row'].items():
                 row_info, color_str = color_key.split('_', 1)
@@ -50,11 +84,9 @@ class MultiRowLayoutDialog:
                 rows_data[row_info]['colors'][color] = balls
                 rows_data[row_info]['total_balls'] += len(balls)
             
-            # Convert to list format
+            # Convert to list format  
             for row_name, data in rows_data.items():
-                # Estimate tubes count (this might need adjustment based on your tube parameter logic)
-                estimated_tubes = max(1, len(data['colors']))  # Rough estimate
-                
+                estimated_tubes = max(1, len(data['colors']))
                 rows_info.append({
                     'name': row_name,
                     'tubes_count': estimated_tubes,
@@ -64,16 +96,53 @@ class MultiRowLayoutDialog:
         
         return rows_info
     
-    def _initialize_default_layout(self):
-        """Initialize default 2x2 layout"""
-        positions = [(0, 0), (1, 0), (0, 1), (1, 1)]  # Grid positions (x, y)
+    def _calculate_empty_rows_needed(self):
+        """Calculate how many additional rows are needed for empty tubes"""
+        if self.empty_tubes_count <= 0:
+            return 0
         
+        # Each empty row can hold max_tubes_per_row tubes
+        return (self.empty_tubes_count + self.max_tubes_per_row - 1) // self.max_tubes_per_row
+    
+    def _initialize_default_layout(self):
+        """Initialize default layout including empty rows"""
+        # Generate all positions based on grid size
+        positions = []
+        for y in range(self.grid_rows):
+            for x in range(self.grid_cols):
+                positions.append((x, y))
+        
+        # Place data rows first
         for i, row_info in enumerate(self.rows_info):
             if i < len(positions):
                 self.layout_grid[i] = {
                     'x': positions[i][0], 
                     'y': positions[i][1],
-                    'row_info': row_info
+                    'row_info': row_info,
+                    'type': 'data'
+                }
+        
+        # Add empty tube rows
+        empty_rows_needed = self._calculate_empty_rows_needed()
+        start_idx = len(self.rows_info)
+        
+        for empty_row_idx in range(empty_rows_needed):
+            position_idx = start_idx + empty_row_idx
+            if position_idx < len(positions):
+                # Calculate how many empty tubes for this row
+                remaining_empty = self.empty_tubes_count - (empty_row_idx * self.max_tubes_per_row)
+                tubes_in_this_row = min(self.max_tubes_per_row, remaining_empty)
+                
+                self.layout_grid[position_idx] = {
+                    'x': positions[position_idx][0],
+                    'y': positions[position_idx][1], 
+                    'row_info': {
+                        'name': f"Éprouvettes Vides {empty_row_idx + 1}",
+                        'tubes_count': tubes_in_this_row,
+                        'total_balls': 0,
+                        'colors': {}
+                    },
+                    'type': 'empty'
                 }
     
     def show_dialog(self):
@@ -235,6 +304,27 @@ class MultiRowLayoutDialog:
         
         callback()
     
+    def _update_empty_tubes(self):
+        """Update layout when empty tubes count changes"""
+        self.empty_tubes_count = self.empty_tubes_var.get()
+        
+        # Recalculate grid size if needed
+        total_rows_needed = len(self.rows_info) + self._calculate_empty_rows_needed()
+        new_grid_rows = max(self.grid_rows, (total_rows_needed + self.grid_cols - 1) // self.grid_cols)
+        
+        if new_grid_rows != self.grid_rows:
+            self.grid_rows = new_grid_rows
+            self.rows_var.set(self.grid_rows)
+            # Update the rows spinbox display
+            for child in self.rows_var.master.winfo_children():
+                if hasattr(child, 'label'):
+                    child.label.configure(text=str(self.grid_rows))
+                    break
+        
+        # Reinitialize layout with new empty tubes
+        self._initialize_default_layout()
+        self._draw_layout()
+    
     def _update_layout(self):
         """Update layout when grid size changes"""
         self.grid_cols = self.cols_var.get()
@@ -375,8 +465,8 @@ Elles servent d'espace de travail pour résoudre le puzzle."""
                    font=ctk.CTkFont(size=12, weight="bold")).pack(side="left", padx=(15, 10), pady=15)
         
         self.empty_tubes_var = ctk.IntVar(value=self.empty_tubes_count)
-        empty_spinbox = self._create_spinbox(input_frame, self.empty_tubes_var, 0, 10, 
-                                           lambda: setattr(self, 'empty_tubes_count', self.empty_tubes_var.get()))
+        empty_spinbox = self._create_spinbox(input_frame, self.empty_tubes_var, 0, 20, 
+                                           self._update_empty_tubes)
         empty_spinbox.pack(side="left", padx=(0, 15), pady=15)
     
     def _create_buttons_section(self, parent):
