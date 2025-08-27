@@ -256,7 +256,13 @@ class GameModelGenerator:
             for color_key, balls in results['colors_by_row'].items():
                 row_info, color_str = color_key.split('_', 1)
                 try:
-                    color = eval(color_str) if color_str.startswith('(') else (128, 128, 128)
+                    if isinstance(color_str, str) and color_str.startswith('('):
+                        color = eval(color_str)
+                    elif isinstance(color_str, tuple):
+                        color = color_str
+                    else:
+                        color = (128, 128, 128)
+                    
                     if color not in all_colors:
                         all_colors[color] = []
                     all_colors[color].extend(balls)

@@ -526,7 +526,15 @@ class BallSortSolver:
                 
                 # Extract color info
                 row_info, color = color_key.split('_', 1)
-                color_rgb = eval(color) if color.startswith('(') else (128, 128, 128)
+                try:
+                    if isinstance(color, str) and color.startswith('('):
+                        color_rgb = eval(color)
+                    elif isinstance(color, tuple):
+                        color_rgb = color
+                    else:
+                        color_rgb = (128, 128, 128)
+                except:
+                    color_rgb = (128, 128, 128)
                 
                 # Color sample
                 canvas = tk.Canvas(color_frame, width=25, height=25)
@@ -725,7 +733,13 @@ Total balles détectées: {results['total_balls']}"""
                     
                     # Color sample
                     try:
-                        color_rgb = eval(color) if color.startswith('(') else (128, 128, 128)
+                        if isinstance(color, str) and color.startswith('('):
+                            color_rgb = eval(color)
+                        elif isinstance(color, tuple):
+                            color_rgb = color
+                        else:
+                            color_rgb = (128, 128, 128)
+                        
                         canvas_color = ctk.CTkCanvas(color_item, width=25, height=25)
                         color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
                         canvas_color.create_rectangle(0, 0, 25, 25, fill=color_hex, outline="black")
@@ -1053,7 +1067,15 @@ Capacité par éprouvette: {game_dict['balls_per_tube']} balles
                 color_header.pack(fill="x", padx=10, pady=10)
                 
                 # Color sample
-                color_rgb = eval(color_key) if color_key.startswith('(') else (128, 128, 128)
+                try:
+                    if isinstance(color_key, str) and color_key.startswith('('):
+                        color_rgb = eval(color_key)
+                    elif isinstance(color_key, tuple):
+                        color_rgb = color_key
+                    else:
+                        color_rgb = (128, 128, 128)
+                except:
+                    color_rgb = (128, 128, 128)
                 canvas_color = ctk.CTkCanvas(color_header, width=30, height=30)
                 color_hex = f"#{color_rgb[0]:02x}{color_rgb[1]:02x}{color_rgb[2]:02x}"
                 canvas_color.create_rectangle(0, 0, 30, 30, fill=color_hex, outline="black", width=2)

@@ -37,10 +37,10 @@ class GameGeneratorDialog:
         """Create the dialog window"""
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title("Génération du Modèle de Jeu")
-        self.dialog.geometry("600x650")
+        self.dialog.geometry("700x750")
         self.dialog.grab_set()
         self.dialog.resizable(True, True)
-        self.dialog.minsize(500, 600)
+        self.dialog.minsize(600, 700)
         
         # Center the dialog
         self.dialog.transient(self.parent)
