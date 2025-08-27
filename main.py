@@ -26,6 +26,8 @@ from corner_selector import CornerSelector
 from game_model import GameModelGenerator
 from game_generator_dialog import GameGeneratorDialog
 from game_visual_display import GameVisualDisplay
+from multi_row_layout_dialog import MultiRowLayoutDialog
+from multi_row_visual_display import MultiRowVisualDisplay
 
 class BallSortSolver:
     def __init__(self):
@@ -911,15 +913,11 @@ Couleurs différentes: {total_colors}"""
         dialog.show_dialog(detected_tubes, total_balls, balls_per_tube)
     
     def open_game_generator_multi_row(self, results, parent_window):
-        """Open game generator dialog for multi-row results"""
-        total_balls = results['total_balls']
-        detected_tubes = results['total_tubes']
-        # Estimate balls per tube from total configuration
-        balls_per_tube = 4  # Default, could be calculated from data
-        
-        dialog = GameGeneratorDialog(parent_window,
-                                   lambda result: self.generate_multi_row_model(result, results, parent_window))
-        dialog.show_dialog(detected_tubes, total_balls, balls_per_tube)
+        """Open multi-row layout dialog for multi-row results"""
+        dialog = MultiRowLayoutDialog(parent_window,
+                                    lambda result: self.generate_multi_row_model_with_layout(result, results, parent_window),
+                                    results)
+        dialog.show_dialog()
     
     def generate_single_row_model(self, generator_params, row_data, parent_window):
         """Generate game model from single row data"""
@@ -952,8 +950,18 @@ Couleurs différentes: {total_colors}"""
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de la génération du modèle: {str(e)}")
     
+    def generate_multi_row_model_with_layout(self, layout_data, results, parent_window):
+        """Generate multi-row model with custom layout"""
+        try:
+            # Show multi-row visual display instead of single game model
+            visual_display = MultiRowVisualDisplay(parent_window, layout_data, results)
+            visual_display.show_visual_display()
+            
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Erreur lors de la génération du modèle multi-rangées: {str(e)}")
+    
     def generate_multi_row_model(self, generator_params, results, parent_window):
-        """Generate game model from multi-row data"""
+        """Generate game model from multi-row data (legacy method)"""
         try:
             # Generate game state using multi-row results
             game_state = GameModelGenerator.create_game_state(
