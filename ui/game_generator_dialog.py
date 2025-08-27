@@ -37,16 +37,17 @@ class GameGeneratorDialog:
         """Create the dialog window"""
         self.dialog = ctk.CTkToplevel(self.parent)
         self.dialog.title("Génération du Modèle de Jeu")
-        self.dialog.geometry("500x500")
+        self.dialog.geometry("600x650")
         self.dialog.grab_set()
-        self.dialog.resizable(False, False)
+        self.dialog.resizable(True, True)
+        self.dialog.minsize(500, 600)
         
         # Center the dialog
         self.dialog.transient(self.parent)
         
         # Main container - don't expand to leave room for buttons
         main_frame = ctk.CTkFrame(self.dialog)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=(20, 0))
+        main_frame.pack(fill="both", expand=True, padx=25, pady=(25, 10))
         
         # Title
         title = ctk.CTkLabel(main_frame, 
@@ -57,7 +58,7 @@ class GameGeneratorDialog:
         
         # Information section
         info_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-        info_frame.pack(fill="x", pady=(0, 20))
+        info_frame.pack(fill="x", pady=(0, 25))
         
         ctk.CTkLabel(info_frame, 
                     text="📊 Informations détectées",
@@ -75,7 +76,7 @@ class GameGeneratorDialog:
         
         # Empty tubes section
         empty_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-        empty_frame.pack(fill="x", pady=(0, 20))
+        empty_frame.pack(fill="x", pady=(0, 25))
         
         ctk.CTkLabel(empty_frame,
                     text="🧪 Configuration des éprouvettes vides",
@@ -131,7 +132,7 @@ Elles servent d'espace temporaire pour déplacer les balles."""
         
         # Summary section
         summary_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-        summary_frame.pack(fill="x", pady=(0, 20))
+        summary_frame.pack(fill="x", pady=(0, 25))
         
         ctk.CTkLabel(summary_frame,
                     text="📋 Résumé de la génération",
@@ -145,7 +146,7 @@ Elles servent d'espace temporaire pour déplacer les balles."""
         
         # Buttons section - separate from main content
         buttons_container = ctk.CTkFrame(self.dialog, fg_color="transparent")
-        buttons_container.pack(side="bottom", fill="x", padx=20, pady=(0, 20))
+        buttons_container.pack(side="bottom", fill="x", padx=25, pady=(10, 25))
         
         # Buttons frame
         button_frame = ctk.CTkFrame(buttons_container, corner_radius=10)
