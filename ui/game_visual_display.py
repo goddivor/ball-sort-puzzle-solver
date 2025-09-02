@@ -77,13 +77,25 @@ class GameVisualDisplay:
         # Draw the game
         self._draw_game_state(game_dict)
         
-        # Close button
-        close_frame = ctk.CTkFrame(main_frame)
-        close_frame.pack()
+        # Action buttons
+        button_frame = ctk.CTkFrame(main_frame)
+        button_frame.pack(pady=10)
         
-        ctk.CTkButton(close_frame, text="❌ Fermer", command=self.window.destroy,
-                     fg_color="#f44336", hover_color="#da190b",
-                     font=ctk.CTkFont(size=12, weight="bold"), height=35).pack(pady=10)
+        # Solve button
+        solve_btn = ctk.CTkButton(button_frame, text="🧩 Résoudre le Puzzle", 
+                                command=self._solve_puzzle,
+                                fg_color="#4CAF50", hover_color="#45a049",
+                                font=ctk.CTkFont(size=14, weight="bold"), 
+                                height=40, width=200)
+        solve_btn.pack(side="left", padx=(0, 20))
+        
+        # Close button
+        close_btn = ctk.CTkButton(button_frame, text="❌ Fermer", 
+                                command=self.window.destroy,
+                                fg_color="#f44336", hover_color="#da190b",
+                                font=ctk.CTkFont(size=12, weight="bold"), 
+                                height=40, width=120)
+        close_btn.pack(side="left")
     
     def _draw_game_state(self, game_dict):
         """Draw the complete game state on canvas"""
@@ -180,3 +192,127 @@ class GameVisualDisplay:
         # Calculate luminance
         luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
         return 'white' if luminance < 0.5 else 'black'
+    
+    def _solve_puzzle(self):
+        """Launch the puzzle solver"""
+        try:
+            from models.puzzle_solver import PuzzleSolver
+            from ui.solution_display import SolutionDisplay
+            
+            # Create solver instance with current game state
+            solver = PuzzleSolver(self.game_state)
+            
+            # Show solving progress dialog
+            progress_window = ctk.CTkToplevel(self.window)
+            progress_window.title("🧩 Résolution en cours...")
+            progress_window.geometry("400x200")
+            progress_window.grab_set()
+            
+            # Progress elements
+            progress_label = ctk.CTkLabel(progress_window, text="🔄 Recherche de la solution optimale...", 
+                                        font=ctk.CTkFont(size=14))
+            progress_label.pack(pady=30)
+            
+            progress_bar = ctk.CTkProgressBar(progress_window, width=300)
+            progress_bar.pack(pady=20)
+            progress_bar.set(0)
+            
+            # Start solving in a separate thread (simulation for now)
+            self.window.after(100, lambda: self._perform_solving(solver, progress_window, progress_bar))
+            
+        except ImportError:
+            # Solver not implemented yet - show placeholder
+            self._show_solver_placeholder()
+    
+    def _perform_solving(self, solver, progress_window, progress_bar):
+        """Perform the actual solving process"""
+        try:
+            # Simulate solving progress
+            for i in range(1, 11):
+                progress_bar.set(i/10)
+                if i < 10:
+                    self.window.after(200, lambda i=i: self._perform_solving(solver, progress_window, progress_bar))
+                    return
+            
+            # Get solution (placeholder for now)
+            solution = solver.solve()
+            
+            progress_window.destroy()
+            
+            if solution:
+                # Show solution display
+                from ui.solution_display import SolutionDisplay
+                solution_display = SolutionDisplay(self.window, solution, self.game_state)
+                solution_display.show_solution()
+            else:
+                self._show_no_solution_message()
+                
+        except Exception as e:
+            progress_window.destroy()
+            self._show_error_message(f"Erreur lors de la résolution: {str(e)}")
+    
+    def _show_solver_placeholder(self):
+        """Show placeholder message when solver is not implemented"""
+        placeholder_window = ctk.CTkToplevel(self.window)
+        placeholder_window.title("🚧 En développement")
+        placeholder_window.geometry("500x300")
+        placeholder_window.grab_set()
+        
+        frame = ctk.CTkFrame(placeholder_window)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(frame, text="🚧 Solveur en développement", 
+                    font=ctk.CTkFont(size=20, weight="bold"), text_color="#FF9800").pack(pady=20)
+        
+        info_text = """Le système de résolution automatique est en cours de développement.
+        
+Fonctionnalités prévues :
+• 🧮 Algorithme de résolution optimisé
+• 📊 Analyse de la complexité du puzzle
+• 🎯 Solution étape par étape
+• ⏱️ Temps de résolution estimé
+• 📈 Statistiques de performance"""
+        
+        ctk.CTkLabel(frame, text=info_text, font=ctk.CTkFont(size=12), justify="left").pack(pady=20)
+        
+        ctk.CTkButton(frame, text="✅ Compris", command=placeholder_window.destroy,
+                     fg_color="#2196F3", height=35).pack(pady=20)
+    
+    def _show_no_solution_message(self):
+        """Show message when no solution is found"""
+        msg_window = ctk.CTkToplevel(self.window)
+        msg_window.title("Aucune solution")
+        msg_window.geometry("400x200")
+        msg_window.grab_set()
+        
+        frame = ctk.CTkFrame(msg_window)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(frame, text="❌ Aucune solution trouvée", 
+                    font=ctk.CTkFont(size=16, weight="bold"), 
+                    text_color="#f44336").pack(pady=20)
+        
+        ctk.CTkLabel(frame, text="Aucune solution n'a été trouvée pour ce puzzle.", 
+                    font=ctk.CTkFont(size=12)).pack(pady=10)
+        
+        ctk.CTkButton(frame, text="OK", command=msg_window.destroy).pack(pady=20)
+    
+    def _show_error_message(self, error_msg):
+        """Show error message"""
+        error_window = ctk.CTkToplevel(self.window)
+        error_window.title("Erreur")
+        error_window.geometry("450x250")
+        error_window.grab_set()
+        
+        frame = ctk.CTkFrame(error_window)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(frame, text="❌ Erreur", 
+                    font=ctk.CTkFont(size=16, weight="bold"), 
+                    text_color="#f44336").pack(pady=15)
+        
+        ctk.CTkLabel(frame, text=error_msg, 
+                    font=ctk.CTkFont(size=12), 
+                    wraplength=350).pack(pady=10)
+        
+        ctk.CTkButton(frame, text="OK", command=error_window.destroy).pack(pady=20)
