@@ -364,8 +364,9 @@ class MultiRowVisualDisplay:
     def _perform_multi_row_solving(self, solver, progress_window, progress_bar, status_label):
         """Perform the multi-row solving process"""
         try:
-            # Simulate multi-row solving with detailed progress
-            statuses = [
+            # Initialize progress tracking
+            self.solving_progress = 0
+            self.solving_statuses = [
                 "🔍 Analyse de la structure multi-rangées...",
                 "📊 Calcul des états possibles...", 
                 "🧮 Application de l'algorithme de résolution...",
@@ -373,39 +374,53 @@ class MultiRowVisualDisplay:
                 "✨ Finalisation des étapes..."
             ]
             
-            # Simulate solving progress with status updates
-            for i in range(len(statuses)):
-                progress_bar.set((i + 1) / len(statuses))
-                status_label.configure(text=statuses[i])
-                if i < len(statuses) - 1:
-                    self.window.after(800, lambda i=i: self._perform_multi_row_solving(solver, progress_window, progress_bar, status_label))
-                    return
-            
-            # Simulate final processing
-            self.window.after(500, lambda: self._complete_multi_row_solving(solver, progress_window))
-            
+            # Start progress animation
+            self._update_multi_row_progress(solver, progress_window, progress_bar, status_label)
+                
         except Exception as e:
-            progress_window.destroy()
+            if progress_window.winfo_exists():
+                progress_window.destroy()
             self._show_error_message(f"Erreur lors de la résolution multi-rangées: {str(e)}")
+    
+    def _update_multi_row_progress(self, solver, progress_window, progress_bar, status_label):
+        """Update multi-row solving progress animation"""
+        try:
+            if not progress_window.winfo_exists():
+                return
+                
+            if self.solving_progress < len(self.solving_statuses):
+                # Update progress bar and status
+                progress_value = (self.solving_progress + 1) / len(self.solving_statuses)
+                progress_bar.set(progress_value)
+                status_label.configure(text=self.solving_statuses[self.solving_progress])
+                
+                # Move to next step
+                self.solving_progress += 1
+                
+                # Schedule next update
+                self.window.after(800, lambda: self._update_multi_row_progress(solver, progress_window, progress_bar, status_label))
+            else:
+                # Progress complete
+                self.window.after(500, lambda: self._complete_multi_row_solving(solver, progress_window))
+                
+        except Exception as e:
+            if progress_window.winfo_exists():
+                progress_window.destroy()
+            self._show_error_message(f"Erreur lors de la mise à jour: {str(e)}")
     
     def _complete_multi_row_solving(self, solver, progress_window):
         """Complete the multi-row solving process"""
         try:
-            # Get solution (placeholder for now)
-            solution = solver.solve()
-            
+            if not progress_window.winfo_exists():
+                return
+                
+            # For now, show placeholder instead of actual solving
             progress_window.destroy()
-            
-            if solution:
-                # Show solution display
-                from ui.solution_display import MultiRowSolutionDisplay
-                solution_display = MultiRowSolutionDisplay(self.window, solution, self.layout_data, self.multi_row_data)
-                solution_display.show_solution()
-            else:
-                self._show_no_solution_message()
+            self._show_multi_row_solver_placeholder()
                 
         except Exception as e:
-            progress_window.destroy()
+            if progress_window.winfo_exists():
+                progress_window.destroy()
             self._show_error_message(f"Erreur lors de la finalisation: {str(e)}")
     
     def _show_multi_row_solver_placeholder(self):

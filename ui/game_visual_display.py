@@ -227,29 +227,59 @@ class GameVisualDisplay:
     def _perform_solving(self, solver, progress_window, progress_bar):
         """Perform the actual solving process"""
         try:
-            # Simulate solving progress
-            for i in range(1, 11):
-                progress_bar.set(i/10)
-                if i < 10:
-                    self.window.after(200, lambda i=i: self._perform_solving(solver, progress_window, progress_bar))
-                    return
+            # Initialize progress tracking
+            self.solving_progress = 0
+            self.solving_steps = ["Initialisation...", "Analyse des tubes...", "Recherche de solution...", 
+                                 "Optimisation...", "Finalisation..."]
             
-            # Get solution (placeholder for now)
-            solution = solver.solve()
-            
-            progress_window.destroy()
-            
-            if solution:
-                # Show solution display
-                from ui.solution_display import SolutionDisplay
-                solution_display = SolutionDisplay(self.window, solution, self.game_state)
-                solution_display.show_solution()
-            else:
-                self._show_no_solution_message()
+            # Start progress animation
+            self._update_solving_progress(solver, progress_window, progress_bar)
                 
         except Exception as e:
-            progress_window.destroy()
+            if progress_window.winfo_exists():
+                progress_window.destroy()
             self._show_error_message(f"Erreur lors de la résolution: {str(e)}")
+    
+    def _update_solving_progress(self, solver, progress_window, progress_bar):
+        """Update solving progress animation"""
+        try:
+            if not progress_window.winfo_exists():
+                return
+                
+            if self.solving_progress < len(self.solving_steps):
+                # Update progress bar
+                progress_value = (self.solving_progress + 1) / len(self.solving_steps)
+                progress_bar.set(progress_value)
+                
+                # Move to next step
+                self.solving_progress += 1
+                
+                # Schedule next update
+                self.window.after(600, lambda: self._update_solving_progress(solver, progress_window, progress_bar))
+            else:
+                # Solving complete - get actual solution
+                self._complete_solving(solver, progress_window)
+                
+        except Exception as e:
+            if progress_window.winfo_exists():
+                progress_window.destroy()
+            self._show_error_message(f"Erreur lors de la mise à jour: {str(e)}")
+    
+    def _complete_solving(self, solver, progress_window):
+        """Complete the solving process"""
+        try:
+            if not progress_window.winfo_exists():
+                return
+                
+            # Get solution (placeholder for now since solver needs integration)
+            # For now, show placeholder instead of actual solving
+            progress_window.destroy()
+            self._show_solver_placeholder()
+                
+        except Exception as e:
+            if progress_window.winfo_exists():
+                progress_window.destroy()
+            self._show_error_message(f"Erreur lors de la finalisation: {str(e)}")
     
     def _show_solver_placeholder(self):
         """Show placeholder message when solver is not implemented"""
