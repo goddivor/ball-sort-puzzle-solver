@@ -414,14 +414,69 @@ class MultiRowVisualDisplay:
             if not progress_window.winfo_exists():
                 return
                 
-            # For now, show placeholder instead of actual solving
+            # Get actual solution from multi-row solver
+            solution = solver.solve()
+            
             progress_window.destroy()
-            self._show_multi_row_solver_placeholder()
+            
+            if solution and len(solution) > 0:
+                # Show multi-row solution display
+                from ui.solution_display import MultiRowSolutionDisplay
+                solution_display = MultiRowSolutionDisplay(self.window, solution, self.layout_data, self.multi_row_data)
+                solution_display.show_solution()
+            else:
+                # Show result message
+                self._show_multi_row_solution_result(solution)
                 
         except Exception as e:
             if progress_window.winfo_exists():
                 progress_window.destroy()
-            self._show_error_message(f"Erreur lors de la finalisation: {str(e)}")
+            self._show_error_message(f"Erreur lors de la résolution: {str(e)}")
+    
+    def _show_multi_row_solution_result(self, solution):
+        """Show result when multi-row puzzle is solved or no solution exists"""
+        result_window = ctk.CTkToplevel(self.window)
+        result_window.title("Résultat de la résolution multi-rangées")
+        result_window.geometry("550x350")
+        result_window.grab_set()
+        
+        frame = ctk.CTkFrame(result_window)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        if solution is not None and len(solution) == 0:
+            # Puzzle already solved
+            ctk.CTkLabel(frame, text="🎉 Puzzle multi-rangées déjà résolu !", 
+                        font=ctk.CTkFont(size=18, weight="bold"), 
+                        text_color="#4CAF50").pack(pady=20)
+            
+            message = """Le puzzle multi-rangées est déjà dans un état résolu !
+            
+✅ Toutes les rangées sont correctement organisées
+✅ Les balles de même couleur sont groupées
+✅ Aucun mouvement supplémentaire requis"""
+            
+        else:
+            # No solution found
+            ctk.CTkLabel(frame, text="❌ Aucune solution trouvée", 
+                        font=ctk.CTkFont(size=18, weight="bold"), 
+                        text_color="#f44336").pack(pady=20)
+            
+            message = """Aucune solution n'a pu être trouvée pour ce puzzle multi-rangées.
+
+Causes possibles :
+• Configuration impossible à résoudre
+• Pas assez d'éprouvettes vides pour les mouvements
+• Erreurs dans la détection des couleurs entre rangées
+• Complexité trop élevée pour l'algorithme actuel
+• Données inconsistantes entre les rangées"""
+        
+        ctk.CTkLabel(frame, text=message, 
+                    font=ctk.CTkFont(size=12), 
+                    justify="left").pack(pady=15)
+        
+        ctk.CTkButton(frame, text="OK", 
+                     command=result_window.destroy,
+                     fg_color="#2196F3").pack(pady=20)
     
     def _show_multi_row_solver_placeholder(self):
         """Show placeholder message for multi-row solver"""

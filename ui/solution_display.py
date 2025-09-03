@@ -433,9 +433,90 @@ class MultiRowSolutionDisplay:
         self.multi_row_data = multi_row_data
     
     def show_solution(self):
-        """Show multi-row solution"""
-        # Create a specialized multi-row solution display
-        self._show_placeholder()
+        """Show multi-row solution with real solution data"""
+        self.window = ctk.CTkToplevel(self.parent)
+        self.window.title("🎯 Solution Multi-Rangées - Ball Sort Puzzle")
+        self.window.geometry("800x600")
+        self.window.grab_set()
+        
+        # Main scrollable frame
+        main_frame = ctk.CTkScrollableFrame(self.window)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Title
+        title = ctk.CTkLabel(main_frame, text="🎯 Solution Multi-Rangées Trouvée", 
+                           font=ctk.CTkFont(size=20, weight="bold"), text_color="#4CAF50")
+        title.pack(pady=(10, 20))
+        
+        # Solution info
+        if self.solution:
+            info_text = f"Solution trouvée en {len(self.solution)} étapes pour puzzle multi-rangées"
+            color = "#4CAF50"
+            
+            info_label = ctk.CTkLabel(main_frame, text=info_text, 
+                                    font=ctk.CTkFont(size=14), text_color=color)
+            info_label.pack(pady=(0, 20))
+            
+            # Solution steps
+            steps_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+            steps_frame.pack(fill="x", pady=(0, 20))
+            
+            ctk.CTkLabel(steps_frame, text="📋 Étapes de la solution :", 
+                        font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
+            
+            # List all moves
+            for i, move in enumerate(self.solution[:10]):  # Show first 10 moves
+                step_text = f"{i+1}. {move.description}"
+                ctk.CTkLabel(steps_frame, text=step_text, 
+                            font=ctk.CTkFont(size=12), anchor="w").pack(pady=2, padx=20, fill="x")
+            
+            if len(self.solution) > 10:
+                ctk.CTkLabel(steps_frame, text=f"... et {len(self.solution) - 10} étapes de plus", 
+                            font=ctk.CTkFont(size=11), text_color="#666666").pack(pady=5)
+            
+        else:
+            # No solution case
+            info_text = "Aucune solution trouvée pour le puzzle multi-rangées"
+            color = "#f44336"
+        
+        # Multi-row specific info
+        info_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        info_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(info_frame, text="🔍 Informations du puzzle :", 
+                    font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 10))
+        
+        # Layout info
+        total_rows = len(self.layout_data.get('rows_info', []))
+        total_tubes = sum(row['tubes_count'] for row in self.layout_data.get('rows_info', []))
+        empty_tubes = self.layout_data.get('empty_tubes_count', 0)
+        
+        layout_text = f"• Rangées analysées : {total_rows}\n"
+        layout_text += f"• Éprouvettes avec balles : {total_tubes}\n" 
+        layout_text += f"• Éprouvettes vides : {empty_tubes}\n"
+        layout_text += f"• Configuration : Puzzle multi-rangées unifié"
+        
+        ctk.CTkLabel(info_frame, text=layout_text, 
+                    font=ctk.CTkFont(size=12), justify="left").pack(pady=10, padx=20)
+        
+        # Note about unified solving
+        note_frame = ctk.CTkFrame(main_frame, corner_radius=10, fg_color="#E3F2FD")
+        note_frame.pack(fill="x", pady=(0, 20))
+        
+        note_text = """💡 Note : Le puzzle multi-rangées a été unifié en un seul état de jeu.
+        
+La solution montre les mouvements à effectuer sur l'ensemble unifié de toutes les éprouvettes,
+toutes rangées confondues. Chaque mouvement respecte les règles Ball Sort classiques."""
+        
+        ctk.CTkLabel(note_frame, text=note_text, 
+                    font=ctk.CTkFont(size=11), 
+                    text_color="#1976D2",
+                    justify="left").pack(pady=15, padx=20)
+        
+        # Close button  
+        ctk.CTkButton(main_frame, text="✅ Fermer", 
+                     command=self.window.destroy,
+                     fg_color="#4CAF50", height=35).pack(pady=20)
     
     def _show_placeholder(self):
         """Show placeholder for multi-row solution display"""

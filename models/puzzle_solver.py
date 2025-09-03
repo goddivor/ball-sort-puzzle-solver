@@ -428,9 +428,79 @@ class MultiRowPuzzleSolver:
     
     def _convert_multi_row_to_unified_state(self):
         """Convert multi-row layout to unified game state"""
-        # This is a placeholder - would need actual implementation
-        # based on the multi-row data structure
-        return None
+        try:
+            from models.game_model import GameModelGenerator
+            
+            # Extract all tubes from all rows
+            all_tubes = []
+            total_empty_tubes = self.layout_data.get('empty_tubes_count', 2)
+            balls_per_tube = 4  # Default
+            
+            # Process each row from layout_grid
+            layout_grid = self.layout_data.get('layout_grid', {})
+            
+            for row_idx, row_data in layout_grid.items():
+                row_info = row_data.get('row_info', {})
+                
+                # Skip empty tube sections
+                if row_info.get('type') == 'empty':
+                    continue
+                    
+                # Get balls per tube from row info
+                balls_per_tube = row_info.get('balls_per_tube', 4)
+                
+                # Process color matrix if available
+                color_matrix = row_info.get('color_matrix', [])
+                grid_matrix = row_info.get('grid_matrix', [])
+                
+                if color_matrix and grid_matrix:
+                    # Use matrix-based conversion (correct Ball Sort format)
+                    for tube_idx, tube_colors in enumerate(color_matrix):
+                        tube_balls = []
+                        for ball_color in tube_colors:
+                            if ball_color is not None:  # Skip None values
+                                tube_balls.append(ball_color)
+                        
+                        if tube_balls:  # Only add non-empty tubes
+                            all_tubes.append(tube_balls)
+                
+                else:
+                    # Fallback to colors-based conversion
+                    colors_data = row_info.get('colors', {})
+                    
+                    # Group balls by tube
+                    tubes_by_index = {}
+                    for color, balls in colors_data.items():
+                        for ball in balls:
+                            tube_idx = ball.get('tube_idx', 0)
+                            if tube_idx not in tubes_by_index:
+                                tubes_by_index[tube_idx] = []
+                            tubes_by_index[tube_idx].append(color)
+                    
+                    # Add tubes to unified list
+                    for tube_idx in sorted(tubes_by_index.keys()):
+                        tube_balls = tubes_by_index[tube_idx]
+                        if tube_balls:  # Only add non-empty tubes
+                            all_tubes.append(tube_balls)
+            
+            # Add empty tubes at the end
+            for _ in range(total_empty_tubes):
+                all_tubes.append([])
+            
+            if not all_tubes:
+                print("Warning: No tubes found in multi-row data")
+                return None
+            
+            print(f"DEBUG: Converted multi-row to unified state with {len(all_tubes)} tubes")
+            for i, tube in enumerate(all_tubes[:5]):  # Show first 5 tubes
+                print(f"  Tube {i}: {len(tube)} balls")
+            
+            # Create unified GameState for Ball Sort solving
+            return GameState(all_tubes, balls_per_tube)
+            
+        except Exception as e:
+            print(f"Error converting multi-row data: {e}")
+            return None
     
     def _calculate_complexity_score(self) -> float:
         """Calculate complexity score for multi-row puzzle"""
