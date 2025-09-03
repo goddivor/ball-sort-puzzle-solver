@@ -305,6 +305,9 @@ class SolutionDisplay:
             move = self.solution[self.current_step]
             # Apply move to current_game_state
             self._apply_move_to_game_state(move.from_tube, move.to_tube)
+            
+            # Reconstruct game state from modified data
+            self._update_game_state_from_dict()
     
     def _apply_step_backwards(self):
         """Apply current step backward"""
@@ -312,10 +315,20 @@ class SolutionDisplay:
             move = self.solution[self.current_step - 1]
             # Reverse the move on current_game_state
             self._reverse_move_on_game_state(move.from_tube, move.to_tube)
+            
+            # Reconstruct game state from modified data
+            self._update_game_state_from_dict()
     
     def _apply_move_to_game_state(self, from_tube_idx, to_tube_idx):
-        """Apply a move to the current game state"""
+        """Apply a move to the current game state (with multiple balls support)"""
         try:
+            # Get current step move for ball count info
+            if self.current_step > 0:
+                current_move = self.solution[self.current_step - 1]
+                balls_to_move_count = getattr(current_move, 'balls_count', 1)
+            else:
+                balls_to_move_count = 1
+            
             game_dict = self.current_game_state.to_dict()
             
             # Find source and destination tubes
@@ -329,11 +342,21 @@ class SolutionDisplay:
                     to_tube = tube_data
             
             if from_tube and to_tube and from_tube['balls']:
-                # Move top ball from source to destination
-                ball = from_tube['balls'].pop()  # Remove from source
-                ball['tube_index'] = to_tube_idx
-                ball['level_index'] = len(to_tube['balls'])
-                to_tube['balls'].append(ball)  # Add to destination
+                # Get consecutive balls of same color from top
+                balls_to_move = self._get_consecutive_balls_to_move(from_tube['balls'], balls_to_move_count)
+                
+                # Move all consecutive balls
+                for ball_data in balls_to_move:
+                    # Remove from source
+                    if ball_data in from_tube['balls']:
+                        from_tube['balls'].remove(ball_data)
+                    
+                    # Update ball properties
+                    ball_data['tube_index'] = to_tube_idx
+                    ball_data['level_index'] = len(to_tube['balls'])
+                    
+                    # Add to destination
+                    to_tube['balls'].append(ball_data)
                 
                 # Update tube properties
                 from_tube['ball_count'] = len(from_tube['balls'])
@@ -343,6 +366,28 @@ class SolutionDisplay:
                 
         except Exception as e:
             print(f"Error applying move: {e}")
+    
+    def _get_consecutive_balls_to_move(self, balls_list, expected_count):
+        """Get consecutive balls of same color from the top of the tube"""
+        if not balls_list:
+            return []
+        
+        # Get top ball color
+        top_ball = balls_list[-1]
+        top_color = tuple(top_ball['color'])
+        
+        consecutive_balls = []
+        
+        # Go from top to bottom, collecting same-colored balls
+        for i in range(len(balls_list) - 1, -1, -1):
+            ball_color = tuple(balls_list[i]['color'])
+            if ball_color == top_color:
+                consecutive_balls.append(balls_list[i])
+            else:
+                break
+        
+        # Return only the expected number of balls (or all if less available)
+        return consecutive_balls[:expected_count]
     
     def _reverse_move_on_game_state(self, original_from_tube_idx, original_to_tube_idx):
         """Reverse a move on the current game state"""
@@ -414,6 +459,43 @@ class SolutionDisplay:
         """Create a copy of game state"""
         import copy
         return copy.deepcopy(game_state)
+    
+    def _update_game_state_from_dict(self):
+        """Update the game state object from modified dictionary data"""
+        try:
+            # Recreate the game state from the modified dictionary
+            from models.game_model import GameState, Tube, Ball
+            
+            game_dict = self.current_game_state.to_dict()
+            
+            # Create new game state
+            tubes_with_balls = game_dict['tubes_with_balls']
+            empty_tubes = game_dict['empty_tubes']
+            balls_per_tube = game_dict['balls_per_tube']
+            
+            new_game_state = GameState(tubes_with_balls, empty_tubes, balls_per_tube)
+            
+            # Recreate tubes with updated data
+            for tube_dict in game_dict['tubes']:
+                tube = Tube(tube_dict['index'], tube_dict['capacity'], tube_dict['is_empty'])
+                
+                # Add balls to tube
+                for ball_dict in tube_dict['balls']:
+                    ball = Ball(
+                        color=tuple(ball_dict['color']),
+                        position=ball_dict['position'],
+                        tube_index=ball_dict['tube_index'],
+                        level_index=ball_dict['level_index']
+                    )
+                    tube.balls.append(ball)
+                
+                new_game_state.add_tube(tube)
+            
+            # Update current game state
+            self.current_game_state = new_game_state
+            
+        except Exception as e:
+            print(f"Error updating game state: {e}")
 
 class MultiRowSolutionDisplay:
     """Solution display for multi-row puzzles"""
