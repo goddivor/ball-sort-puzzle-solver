@@ -108,14 +108,8 @@ class GameState:
         if len(self.tubes[from_tube]) == 0:  # Source tube empty
             return False
         
-        # Get consecutive balls to move (same color from top)
-        balls_to_move = self._get_consecutive_top_balls(from_tube)
-        
-        if not balls_to_move:  # No balls to move
-            return False
-        
-        # Check destination capacity
-        if len(self.tubes[to_tube]) + len(balls_to_move) > self.max_balls_per_tube:  # Would overflow
+        # Check destination capacity (only moving ONE ball)
+        if len(self.tubes[to_tube]) >= self.max_balls_per_tube:  # Destination full
             return False
         
         # If destination is empty, move is always valid
@@ -123,8 +117,8 @@ class GameState:
             return True
         
         # Check if colors match (Ball Sort rule: can only place on same color)
-        source_color = balls_to_move[0]  # All balls have same color
-        dest_color = self.tubes[to_tube][-1]
+        source_color = self.tubes[from_tube][-1]  # Top ball from source
+        dest_color = self.tubes[to_tube][-1]      # Top ball from destination
         
         return source_color == dest_color
     
@@ -148,20 +142,13 @@ class GameState:
         return list(reversed(consecutive_balls))
     
     def make_move(self, from_tube: int, to_tube: int) -> 'GameState':
-        """Create a new game state after making a move (moves all consecutive same-colored balls)"""
+        """Create a new game state after making a move (moves ONE ball only - Ball Sort rules)"""
         new_state = GameState(self.tubes, self.max_balls_per_tube)
         
         if self._is_valid_move(from_tube, to_tube):
-            # Get consecutive balls to move
-            balls_to_move = self._get_consecutive_top_balls(from_tube)
-            
-            # Remove balls from source
-            for _ in range(len(balls_to_move)):
-                new_state.tubes[from_tube].pop()
-            
-            # Add balls to destination
-            for ball in balls_to_move:
-                new_state.tubes[to_tube].append(ball)
+            # Move only ONE ball (the top one)
+            ball = new_state.tubes[from_tube].pop()
+            new_state.tubes[to_tube].append(ball)
         
         return new_state
     
@@ -196,12 +183,10 @@ class Move:
         self.from_tube = from_tube
         self.to_tube = to_tube
         self.ball_color = ball_color
-        self.balls_count = balls_count
+        self.balls_count = balls_count  # Always 1 for Ball Sort
         
-        if balls_count == 1:
-            self.description = f"Déplacer 1 balle {self._color_to_name(ball_color)} du tube {from_tube + 1} vers le tube {to_tube + 1}"
-        else:
-            self.description = f"Déplacer {balls_count} balles {self._color_to_name(ball_color)} du tube {from_tube + 1} vers le tube {to_tube + 1}"
+        # Ball Sort moves only ONE ball at a time
+        self.description = f"Déplacer balle {self._color_to_name(ball_color)} du tube {from_tube + 1} vers le tube {to_tube + 1}"
     
     def _color_to_name(self, color: Tuple[int, int, int]) -> str:
         """Convert RGB color to readable name"""
@@ -297,10 +282,9 @@ class PuzzleSolver:
                 
                 visited.add(new_state)
                 
-                # Create move object with correct ball count
-                balls_to_move = current_state._get_consecutive_top_balls(from_tube)
-                ball_color = balls_to_move[0] if balls_to_move else current_state.tubes[from_tube][-1]
-                move = Move(from_tube, to_tube, ball_color, len(balls_to_move))
+                # Create move object (single ball only)
+                ball_color = current_state.tubes[from_tube][-1]  # Top ball
+                move = Move(from_tube, to_tube, ball_color, 1)  # Always 1 ball
                 new_moves = moves + [move]
                 
                 # Check if solved

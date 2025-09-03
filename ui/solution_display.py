@@ -316,81 +316,42 @@ class SolutionDisplay:
             self._reverse_move_on_game_state(move.from_tube, move.to_tube, move.balls_count)
     
     def _apply_move_to_game_state(self, from_tube_idx, to_tube_idx):
-        """Apply a move to the current game state (with multiple balls support)"""
+        """Apply a move to the current game state (Ball Sort rules: ONE ball only)"""
         try:
-            # Get the move info for ball count
-            move = None
-            if hasattr(self, 'current_step') and self.current_step > 0 and self.current_step <= len(self.solution):
-                move = self.solution[self.current_step - 1]
-            
             # Work directly with game state objects
             from_tube = self.current_game_state.get_tube(from_tube_idx)
             to_tube = self.current_game_state.get_tube(to_tube_idx)
             
             if from_tube and to_tube and len(from_tube.balls) > 0:
-                # Get consecutive balls of same color from top
-                balls_to_move = self._get_consecutive_top_balls_from_tube(from_tube)
+                # Ball Sort rule: Move only ONE ball (the top one)
+                ball = from_tube.balls.pop()  # Remove top ball from source
+                ball.tube_index = to_tube_idx
+                ball.level_index = len(to_tube.balls)
+                to_tube.balls.append(ball)  # Add to destination
                 
-                # Limit by available space in destination
-                available_space = to_tube.get_available_space()
-                balls_to_move = balls_to_move[:available_space]
-                
-                # Move all balls
-                balls_moved = []
-                for _ in range(len(balls_to_move)):
-                    if from_tube.balls:
-                        ball = from_tube.balls.pop()  # Remove from top
-                        ball.tube_index = to_tube_idx
-                        ball.level_index = len(to_tube.balls)
-                        to_tube.balls.append(ball)  # Add to destination
-                        balls_moved.append(ball)
-                
-                print(f"DEBUG: Moved {len(balls_moved)} balls from tube {from_tube_idx} to tube {to_tube_idx}")
+                print(f"DEBUG: Moved 1 ball ({ball.color_name}) from tube {from_tube_idx} to tube {to_tube_idx}")
                 print(f"DEBUG: From tube now has {len(from_tube.balls)} balls")
                 print(f"DEBUG: To tube now has {len(to_tube.balls)} balls")
                 
         except Exception as e:
             print(f"Error applying move: {e}")
     
-    def _get_consecutive_top_balls_from_tube(self, tube):
-        """Get consecutive balls of same color from the top of a tube object"""
-        if not tube.balls:
-            return []
-        
-        # Get top ball color
-        top_ball = tube.balls[-1]
-        top_color = top_ball.color
-        
-        consecutive_balls = []
-        
-        # Go from top to bottom, collecting same-colored balls
-        for i in range(len(tube.balls) - 1, -1, -1):
-            ball_color = tube.balls[i].color
-            if ball_color == top_color:
-                consecutive_balls.append(tube.balls[i])
-            else:
-                break
-        
-        return consecutive_balls
     
     def _reverse_move_on_game_state(self, original_from_tube_idx, original_to_tube_idx, balls_count):
-        """Reverse a move on the current game state"""
+        """Reverse a move on the current game state (Ball Sort: ONE ball only)"""
         try:
-            # Reverse move: move balls back from destination to source
+            # Reverse move: move ONE ball back from destination to source
             dest_tube = self.current_game_state.get_tube(original_to_tube_idx)
             source_tube = self.current_game_state.get_tube(original_from_tube_idx)
             
             if dest_tube and source_tube and len(dest_tube.balls) > 0:
-                # Move the specified number of balls back
-                balls_moved = []
-                for _ in range(min(balls_count, len(dest_tube.balls))):
-                    ball = dest_tube.balls.pop()  # Remove from destination
-                    ball.tube_index = original_from_tube_idx
-                    ball.level_index = len(source_tube.balls)
-                    source_tube.balls.append(ball)  # Add back to source
-                    balls_moved.append(ball)
+                # Move only ONE ball back (Ball Sort rule)
+                ball = dest_tube.balls.pop()  # Remove from destination
+                ball.tube_index = original_from_tube_idx
+                ball.level_index = len(source_tube.balls)
+                source_tube.balls.append(ball)  # Add back to source
                 
-                print(f"DEBUG: Reversed {len(balls_moved)} balls from tube {original_to_tube_idx} back to tube {original_from_tube_idx}")
+                print(f"DEBUG: Reversed 1 ball ({ball.color_name}) from tube {original_to_tube_idx} back to tube {original_from_tube_idx}")
                 
         except Exception as e:
             print(f"Error reversing move: {e}")
