@@ -191,7 +191,7 @@ class SolutionDisplay:
             self._draw_tube(tube_x, tube_data, i)
         
         # Highlight move if showing a step
-        if self.current_step > 0:
+        if self.current_step > 0 and self.current_step <= len(self.solution):
             move = self.solution[self.current_step - 1]
             self._highlight_move(move)
     
@@ -249,9 +249,41 @@ class SolutionDisplay:
     
     def _highlight_move(self, move: Move):
         """Highlight the tubes involved in current move"""
-        # This would highlight the source and destination tubes
-        # Implementation depends on tube positions
-        pass
+        try:
+            game_dict = self.current_game_state.to_dict()
+            tubes = game_dict['tubes']
+            
+            # Calculate tube positions
+            total_width = len(tubes) * self.TUBE_SPACING
+            start_x = max(self.SIDE_MARGIN, (self.canvas.winfo_reqwidth() - total_width) // 2)
+            
+            # Highlight source tube (from)
+            from_tube_x = start_x + (move.from_tube * self.TUBE_SPACING)
+            self._draw_tube_highlight(from_tube_x, "#FF5722", "Source")
+            
+            # Highlight destination tube (to)
+            to_tube_x = start_x + (move.to_tube * self.TUBE_SPACING)
+            self._draw_tube_highlight(to_tube_x, "#4CAF50", "Destination")
+            
+        except Exception as e:
+            print(f"Error highlighting move: {e}")
+    
+    def _draw_tube_highlight(self, tube_x, color, label):
+        """Draw highlight around a tube"""
+        tube_top = self.TOP_MARGIN - 10
+        tube_bottom = tube_top + self.TUBE_HEIGHT + 20
+        tube_left = tube_x - (self.TUBE_WIDTH // 2) - 5
+        tube_right = tube_x + (self.TUBE_WIDTH // 2) + 5
+        
+        # Draw highlight rectangle
+        self.canvas.create_rectangle(tube_left, tube_top, tube_right, tube_bottom,
+                                   outline=color, width=3, fill='', dash=(5, 5),
+                                   tags="highlight")
+        
+        # Add label
+        self.canvas.create_text(tube_x, tube_top - 15, text=label,
+                              font=('Arial', 9, 'bold'), fill=color, 
+                              anchor='center', tags="highlight")
     
     def _previous_step(self):
         """Go to previous step"""
@@ -272,14 +304,50 @@ class SolutionDisplay:
         if self.current_step < len(self.solution):
             move = self.solution[self.current_step]
             # Apply move to current_game_state
-            # This is simplified - would need actual move implementation
+            self._apply_move_to_game_state(move.from_tube, move.to_tube)
     
     def _apply_step_backwards(self):
         """Apply current step backward"""
         if self.current_step > 0:
             move = self.solution[self.current_step - 1]
             # Reverse the move on current_game_state
-            # This is simplified - would need actual reverse move implementation
+            self._reverse_move_on_game_state(move.from_tube, move.to_tube)
+    
+    def _apply_move_to_game_state(self, from_tube_idx, to_tube_idx):
+        """Apply a move to the current game state"""
+        try:
+            game_dict = self.current_game_state.to_dict()
+            
+            # Find source and destination tubes
+            from_tube = None
+            to_tube = None
+            
+            for tube_data in game_dict['tubes']:
+                if tube_data['index'] == from_tube_idx:
+                    from_tube = tube_data
+                elif tube_data['index'] == to_tube_idx:
+                    to_tube = tube_data
+            
+            if from_tube and to_tube and from_tube['balls']:
+                # Move top ball from source to destination
+                ball = from_tube['balls'].pop()  # Remove from source
+                ball['tube_index'] = to_tube_idx
+                ball['level_index'] = len(to_tube['balls'])
+                to_tube['balls'].append(ball)  # Add to destination
+                
+                # Update tube properties
+                from_tube['ball_count'] = len(from_tube['balls'])
+                from_tube['available_space'] = from_tube['capacity'] - from_tube['ball_count']
+                to_tube['ball_count'] = len(to_tube['balls'])
+                to_tube['available_space'] = to_tube['capacity'] - to_tube['ball_count']
+                
+        except Exception as e:
+            print(f"Error applying move: {e}")
+    
+    def _reverse_move_on_game_state(self, original_from_tube_idx, original_to_tube_idx):
+        """Reverse a move on the current game state"""
+        # Reverse move means moving from destination back to source
+        self._apply_move_to_game_state(original_to_tube_idx, original_from_tube_idx)
     
     def _toggle_play(self):
         """Toggle automatic playback"""
@@ -344,9 +412,8 @@ class SolutionDisplay:
     
     def _copy_game_state(self, game_state):
         """Create a copy of game state"""
-        # This would create a proper deep copy
-        # Implementation depends on game state structure
-        return game_state
+        import copy
+        return copy.deepcopy(game_state)
 
 class MultiRowSolutionDisplay:
     """Solution display for multi-row puzzles"""

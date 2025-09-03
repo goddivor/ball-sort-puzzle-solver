@@ -271,15 +271,67 @@ class GameVisualDisplay:
             if not progress_window.winfo_exists():
                 return
                 
-            # Get solution (placeholder for now since solver needs integration)
-            # For now, show placeholder instead of actual solving
+            # Get actual solution from solver
+            solution = solver.solve()
+            
             progress_window.destroy()
-            self._show_solver_placeholder()
+            
+            if solution and len(solution) > 0:
+                # Show solution display
+                from ui.solution_display import SolutionDisplay
+                solution_display = SolutionDisplay(self.window, solution, self.game_state)
+                solution_display.show_solution()
+            else:
+                # Show "no solution" or "already solved" message
+                self._show_solution_result(solution)
                 
         except Exception as e:
             if progress_window.winfo_exists():
                 progress_window.destroy()
-            self._show_error_message(f"Erreur lors de la finalisation: {str(e)}")
+            self._show_error_message(f"Erreur lors de la résolution: {str(e)}")
+    
+    def _show_solution_result(self, solution):
+        """Show result when puzzle is already solved or no solution exists"""
+        result_window = ctk.CTkToplevel(self.window)
+        result_window.title("Résultat de la résolution")
+        result_window.geometry("500x300")
+        result_window.grab_set()
+        
+        frame = ctk.CTkFrame(result_window)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        if solution is not None and len(solution) == 0:
+            # Puzzle already solved
+            ctk.CTkLabel(frame, text="🎉 Puzzle déjà résolu !", 
+                        font=ctk.CTkFont(size=18, weight="bold"), 
+                        text_color="#4CAF50").pack(pady=20)
+            
+            message = """Le puzzle est déjà dans un état résolu !
+            
+✅ Toutes les balles de même couleur sont groupées
+✅ Les éprouvettes sont correctement organisées
+✅ Aucun mouvement supplémentaire requis"""
+            
+        else:
+            # No solution found
+            ctk.CTkLabel(frame, text="❌ Aucune solution trouvée", 
+                        font=ctk.CTkFont(size=18, weight="bold"), 
+                        text_color="#f44336").pack(pady=20)
+            
+            message = """Aucune solution n'a pu être trouvée pour ce puzzle.
+            
+Cela peut indiquer :
+• Le puzzle est dans un état impossible à résoudre
+• La configuration nécessite plus d'éprouvettes vides
+• Il y a une erreur dans la détection des couleurs"""
+        
+        ctk.CTkLabel(frame, text=message, 
+                    font=ctk.CTkFont(size=12), 
+                    justify="left").pack(pady=15)
+        
+        ctk.CTkButton(frame, text="OK", 
+                     command=result_window.destroy,
+                     fg_color="#2196F3").pack(pady=20)
     
     def _show_solver_placeholder(self):
         """Show placeholder message when solver is not implemented"""

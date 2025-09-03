@@ -38,7 +38,7 @@ class GameState:
         return True
     
     def get_valid_moves(self) -> List[Tuple[int, int]]:
-        """Get all valid moves from current state"""
+        """Get all valid moves from current state with optimization"""
         moves = []
         
         for from_tube in range(len(self.tubes)):
@@ -47,15 +47,61 @@ class GameState:
             
             top_ball = self.tubes[from_tube][-1]  # Top ball
             
+            # Optimization: prioritize moves that make sense
             for to_tube in range(len(self.tubes)):
                 if from_tube == to_tube:  # Same tube
                     continue
                 
                 # Check if move is valid
                 if self._is_valid_move(from_tube, to_tube):
-                    moves.append((from_tube, to_tube))
+                    # Calculate move priority (lower = better)
+                    priority = self._calculate_move_priority(from_tube, to_tube)
+                    moves.append((from_tube, to_tube, priority))
         
-        return moves
+        # Sort moves by priority (best moves first)
+        moves.sort(key=lambda x: x[2])
+        return [(from_tube, to_tube) for from_tube, to_tube, _ in moves]
+    
+    def _calculate_move_priority(self, from_tube: int, to_tube: int) -> float:
+        """Calculate priority score for a move (lower = better)"""
+        priority = 0
+        
+        # Prefer moves to empty tubes
+        if len(self.tubes[to_tube]) == 0:
+            priority -= 20
+        
+        # Prefer moves that create pure tubes
+        if len(self.tubes[to_tube]) > 0:
+            dest_color = self.tubes[to_tube][-1]
+            source_color = self.tubes[from_tube][-1]
+            if dest_color == source_color:
+                priority -= 10
+        
+        # Avoid breaking pure tubes unless necessary
+        if self._is_tube_pure(from_tube) and len(self.tubes[from_tube]) > 1:
+            priority += 15
+        
+        # Prefer moves that help complete tubes
+        if self._would_complete_tube(to_tube, self.tubes[from_tube][-1]):
+            priority -= 25
+        
+        return priority
+    
+    def _is_tube_pure(self, tube_idx: int) -> bool:
+        """Check if all balls in tube are same color"""
+        tube = self.tubes[tube_idx]
+        if not tube:
+            return True
+        first_color = tube[0]
+        return all(ball == first_color for ball in tube)
+    
+    def _would_complete_tube(self, tube_idx: int, ball_color: Tuple[int, int, int]) -> bool:
+        """Check if adding this ball would complete the tube"""
+        tube = self.tubes[tube_idx]
+        if len(tube) == self.max_balls_per_tube - 1:  # One space left
+            if tube and tube[0] == ball_color:  # Same color as tube
+                return True
+        return False
     
     def _is_valid_move(self, from_tube: int, to_tube: int) -> bool:
         """Check if a move from one tube to another is valid"""
@@ -162,7 +208,7 @@ class PuzzleSolver:
         }
     
     def solve(self) -> Optional[List[Move]]:
-        """Solve the puzzle using BFS algorithm"""
+        """Solve the puzzle using optimized BFS algorithm"""
         start_time = time.time()
         
         # Convert game model to internal representation
@@ -171,22 +217,39 @@ class PuzzleSolver:
         if initial_state.is_solved():
             return []  # Already solved
         
-        # BFS with state tracking
+        # Check if puzzle is solvable (basic check)
+        if not self._is_puzzle_solvable(initial_state):
+            self.stats['solve_time'] = time.time() - start_time
+            return None
+        
+        # BFS with optimizations
         queue = deque([(initial_state, [])])
         visited = {initial_state}
         
         self.stats['states_explored'] = 0
         self.stats['max_queue_size'] = 0
         
+        # Dynamic search limits based on puzzle complexity
+        max_states = self._calculate_search_limit(initial_state)
+        max_depth = min(50, len(initial_state.tubes) * 10)  # Depth limit
+        
         while queue:
             self.stats['max_queue_size'] = max(self.stats['max_queue_size'], len(queue))
             current_state, moves = queue.popleft()
             self.stats['states_explored'] += 1
             
-            # Get all possible moves
+            # Depth limit check
+            if len(moves) >= max_depth:
+                continue
+            
+            # Get prioritized moves
             valid_moves = current_state.get_valid_moves()
             
             for from_tube, to_tube in valid_moves:
+                # Skip obviously bad moves
+                if self._is_wasteful_move(current_state, from_tube, to_tube):
+                    continue
+                
                 # Create new state after move
                 new_state = current_state.make_move(from_tube, to_tube)
                 
@@ -206,37 +269,98 @@ class PuzzleSolver:
                     self.stats['solution_length'] = len(new_moves)
                     return new_moves
                 
-                # Add to queue
+                # Add to queue with early termination check
                 queue.append((new_state, new_moves))
                 
-                # Prevent infinite search (safety limit)
-                if self.stats['states_explored'] > 100000:
+                # Dynamic search limit
+                if self.stats['states_explored'] > max_states:
                     break
+            
+            # Time limit check (prevent hanging)
+            if time.time() - start_time > 30:  # 30 second limit
+                break
         
         # No solution found
         self.stats['solve_time'] = time.time() - start_time
         return None
+    
+    def _is_puzzle_solvable(self, state: GameState) -> bool:
+        """Basic solvability check"""
+        # Count colors and balls
+        color_counts = {}
+        total_balls = 0
+        
+        for tube in state.tubes:
+            for ball in tube:
+                color_counts[ball] = color_counts.get(ball, 0) + 1
+                total_balls += 1
+        
+        # Check if any color has wrong count
+        expected_balls_per_color = state.max_balls_per_tube
+        for count in color_counts.values():
+            if count != expected_balls_per_color:
+                return False  # Impossible configuration
+        
+        # Count empty tubes needed
+        empty_tubes = sum(1 for tube in state.tubes if len(tube) == 0)
+        colors = len(color_counts)
+        tubes_needed = colors
+        
+        if len(state.tubes) < tubes_needed:
+            return False  # Not enough tubes
+        
+        return True
+    
+    def _calculate_search_limit(self, state: GameState) -> int:
+        """Calculate dynamic search limit based on puzzle complexity"""
+        base_limit = 50000
+        
+        # Adjust based on number of tubes
+        tube_factor = len(state.tubes) * 1000
+        
+        # Adjust based on mixed colors
+        mixed_penalty = 0
+        for tube in state.tubes:
+            if len(tube) > 1:
+                colors = set(tube)
+                if len(colors) > 1:
+                    mixed_penalty += 5000
+        
+        return min(200000, base_limit + tube_factor + mixed_penalty)
+    
+    def _is_wasteful_move(self, state: GameState, from_tube: int, to_tube: int) -> bool:
+        """Check if a move is obviously wasteful"""
+        # Don't move from empty tube to another empty tube
+        if len(state.tubes[from_tube]) == 0 and len(state.tubes[to_tube]) == 0:
+            return True
+        
+        # Don't move ball that's already in correct pure tube
+        if (len(state.tubes[from_tube]) > 0 and 
+            state._is_tube_pure(from_tube) and 
+            len(state.tubes[from_tube]) == state.max_balls_per_tube):
+            return True
+        
+        return False
     
     def _convert_game_model_to_state(self) -> GameState:
         """Convert game model to internal GameState representation"""
         tubes = []
         game_dict = self.initial_game_state.to_dict()
         
+        # Get balls per tube capacity
+        balls_per_tube = game_dict.get('balls_per_tube', 4)
+        
         for tube_data in game_dict['tubes']:
             tube_balls = []
-            for ball in tube_data['balls']:
+            # Sort balls by level_index to maintain correct order (bottom to top)
+            sorted_balls = sorted(tube_data['balls'], key=lambda b: b['level_index'])
+            
+            for ball in sorted_balls:
                 color_rgb = tuple(ball['color'])
                 tube_balls.append(color_rgb)
             tubes.append(tube_balls)
         
-        # Add empty tubes if any
-        total_tubes = game_dict['total_tubes']
-        empty_tubes = game_dict['empty_tubes']
-        
-        for _ in range(empty_tubes):
-            tubes.append([])
-        
-        return GameState(tubes)
+        return GameState(tubes, balls_per_tube)
     
     def get_solution_stats(self) -> Dict:
         """Get statistics about the solving process"""
