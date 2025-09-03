@@ -104,21 +104,25 @@ class GameState:
         return False
     
     def _is_valid_move(self, from_tube: int, to_tube: int) -> bool:
-        """Check if a move from one tube to another is valid"""
+        """Check if a move from one tube to another is valid (Ball Sort rules)"""
         if len(self.tubes[from_tube]) == 0:  # Source tube empty
             return False
         
         # Get consecutive balls to move (same color from top)
         balls_to_move = self._get_consecutive_top_balls(from_tube)
         
-        if len(self.tubes[to_tube]) + len(balls_to_move) > self.max_balls_per_tube:  # Destination would overflow
+        if not balls_to_move:  # No balls to move
+            return False
+        
+        # Check destination capacity
+        if len(self.tubes[to_tube]) + len(balls_to_move) > self.max_balls_per_tube:  # Would overflow
             return False
         
         # If destination is empty, move is always valid
         if len(self.tubes[to_tube]) == 0:
             return True
         
-        # Check if colors match
+        # Check if colors match (Ball Sort rule: can only place on same color)
         source_color = balls_to_move[0]  # All balls have same color
         dest_color = self.tubes[to_tube][-1]
         
