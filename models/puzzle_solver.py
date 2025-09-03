@@ -175,6 +175,104 @@ class GameState:
                 score += 50
         
         return score
+    
+    def to_dict(self):
+        """Convert internal GameState to dict format (for compatibility with visualization)"""
+        return {
+            'tubes_with_balls': len([tube for tube in self.tubes if tube]),
+            'empty_tubes': len([tube for tube in self.tubes if not tube]),
+            'balls_per_tube': self.max_balls_per_tube,
+            'total_tubes': len(self.tubes),
+            'total_balls': sum(len(tube) for tube in self.tubes),
+            'tubes': [
+                {
+                    'index': i,
+                    'capacity': self.max_balls_per_tube,
+                    'is_empty': len(tube) == 0,
+                    'ball_count': len(tube),
+                    'balls': [
+                        {
+                            'color': ball,
+                            'color_name': self._get_color_name(ball),
+                            'position': (0, 0),  # Placeholder position
+                            'tube_index': i,
+                            'level_index': j
+                        } for j, ball in enumerate(tube)
+                    ],
+                    'is_complete': len(tube) == self.max_balls_per_tube and len(set(tube)) <= 1,
+                    'is_pure': len(set(tube)) <= 1 if tube else True,
+                    'available_space': self.max_balls_per_tube - len(tube)
+                } for i, tube in enumerate(self.tubes)
+            ]
+        }
+    
+    def _get_color_name(self, color):
+        """Get readable name for color"""
+        try:
+            r, g, b = color
+            # Simple color mapping
+            if r > 200 and g < 100 and b < 100:
+                return "Rouge"
+            elif g > 200 and r < 100 and b < 100:
+                return "Vert"
+            elif b > 200 and r < 100 and g < 100:
+                return "Bleu"
+            elif r > 200 and g > 200 and b < 100:
+                return "Jaune"
+            elif r > 200 and b > 200 and g < 100:
+                return "Magenta"
+            elif g > 200 and b > 200 and r < 100:
+                return "Cyan"
+            else:
+                return f"Couleur({r},{g},{b})"
+        except:
+            return "Couleur inconnue"
+    
+    def get_tube(self, tube_index):
+        """Get tube by index (for compatibility with visualization)"""
+        if 0 <= tube_index < len(self.tubes):
+            # Create a compatible tube object
+            class TubeProxy:
+                def __init__(self, tube_balls, tube_index, max_capacity):
+                    self.balls = []
+                    self.index = tube_index
+                    self.capacity = max_capacity
+                    self.is_empty = len(tube_balls) == 0
+                    
+                    # Convert tube balls to ball objects
+                    for i, ball_color in enumerate(tube_balls):
+                        ball = BallProxy(ball_color, tube_index, i)
+                        self.balls.append(ball)
+                
+                def get_available_space(self):
+                    return self.capacity - len(self.balls)
+            
+            class BallProxy:
+                def __init__(self, color, tube_index, level_index):
+                    self.color = color
+                    self.tube_index = tube_index
+                    self.level_index = level_index
+                    self.color_name = self._get_color_name(color)
+                    self.position = (0, 0)  # Placeholder
+                
+                def _get_color_name(self, color):
+                    try:
+                        r, g, b = color
+                        if r > 200 and g < 100 and b < 100:
+                            return "Rouge"
+                        elif g > 200 and r < 100 and b < 100:
+                            return "Vert"
+                        elif b > 200 and r < 100 and g < 100:
+                            return "Bleu"
+                        elif r > 200 and g > 200 and b < 100:
+                            return "Jaune"
+                        else:
+                            return f"Couleur({r},{g},{b})"
+                    except:
+                        return "Couleur inconnue"
+            
+            return TubeProxy(self.tubes[tube_index], tube_index, self.max_balls_per_tube)
+        return None
 
 class Move:
     """Represents a move in the solution"""
