@@ -336,11 +336,22 @@ class PuzzleSolver:
         # Convert game model to internal representation
         initial_state = self._convert_game_model_to_state()
         
+        if not initial_state:
+            print("ERROR: Failed to convert game state")
+            return None
+        
+        print(f"DEBUG: Solving puzzle with {len(initial_state.tubes)} tubes")
+        for i, tube in enumerate(initial_state.tubes):
+            print(f"  Tube {i}: {len(tube)} balls - {tube}")
+        
         if initial_state.is_solved():
+            print("DEBUG: Puzzle already solved!")
             return []  # Already solved
         
         # Check if puzzle is solvable (basic check)
-        if not self._is_puzzle_solvable(initial_state):
+        solvable = self._is_puzzle_solvable(initial_state)
+        print(f"DEBUG: Puzzle solvable check: {solvable}")
+        if not solvable:
             self.stats['solve_time'] = time.time() - start_time
             return None
         
@@ -351,9 +362,11 @@ class PuzzleSolver:
         self.stats['states_explored'] = 0
         self.stats['max_queue_size'] = 0
         
-        # Dynamic search limits based on puzzle complexity
-        max_states = self._calculate_search_limit(initial_state)
-        max_depth = min(50, len(initial_state.tubes) * 10)  # Depth limit
+        # Dynamic search limits based on puzzle complexity - INCREASED
+        max_states = self._calculate_search_limit(initial_state) * 5  # 5x more states
+        max_depth = min(100, len(initial_state.tubes) * 20)  # 2x deeper search
+        
+        print(f"DEBUG: Search limits - Max states: {max_states}, Max depth: {max_depth}")
         
         while queue:
             self.stats['max_queue_size'] = max(self.stats['max_queue_size'], len(queue))
@@ -398,16 +411,21 @@ class PuzzleSolver:
                 if self.stats['states_explored'] > max_states:
                     break
             
-            # Time limit check (prevent hanging)
-            if time.time() - start_time > 30:  # 30 second limit
+            # Time limit check (prevent hanging) - EXTENDED
+            if time.time() - start_time > 60:  # 60 second limit (doubled)
+                print(f"DEBUG: Time limit reached. States explored: {self.stats['states_explored']}")
                 break
         
         # No solution found
+        print(f"DEBUG: Search completed. States explored: {self.stats['states_explored']}")
+        print(f"DEBUG: Max queue size: {self.stats['max_queue_size']}")
+        print(f"DEBUG: Search time: {time.time() - start_time:.2f}s")
+        
         self.stats['solve_time'] = time.time() - start_time
         return None
     
     def _is_puzzle_solvable(self, state: GameState) -> bool:
-        """Basic solvability check"""
+        """Basic solvability check - made less restrictive"""
         # Count colors and balls
         color_counts = {}
         total_balls = 0
@@ -417,19 +435,28 @@ class PuzzleSolver:
                 color_counts[ball] = color_counts.get(ball, 0) + 1
                 total_balls += 1
         
-        # Check if any color has wrong count
-        expected_balls_per_color = state.max_balls_per_tube
-        for count in color_counts.values():
-            if count != expected_balls_per_color:
-                return False  # Impossible configuration
+        print(f"DEBUG: Color analysis:")
+        for color, count in color_counts.items():
+            print(f"  Color {color}: {count} balls")
         
-        # Count empty tubes needed
+        # Less restrictive check - allow puzzles with different ball counts per color
+        # This happens in real puzzles where some tubes are partially filled
+        expected_balls_per_color = state.max_balls_per_tube
+        for color, count in color_counts.items():
+            if count > expected_balls_per_color * 2:  # Very lenient check
+                print(f"DEBUG: Too many balls of color {color}: {count}")
+                return False
+        
+        # Count empty tubes
         empty_tubes = sum(1 for tube in state.tubes if len(tube) == 0)
         colors = len(color_counts)
-        tubes_needed = colors
         
-        if len(state.tubes) < tubes_needed:
-            return False  # Not enough tubes
+        print(f"DEBUG: Empty tubes: {empty_tubes}, Colors: {colors}, Total tubes: {len(state.tubes)}")
+        
+        # Very lenient tube check - just need some working space
+        if empty_tubes < 1 and colors > 1:
+            print("DEBUG: Need at least 1 empty tube for non-trivial puzzles")
+            return False
         
         return True
     
@@ -466,23 +493,37 @@ class PuzzleSolver:
     
     def _convert_game_model_to_state(self) -> GameState:
         """Convert game model to internal GameState representation"""
-        tubes = []
-        game_dict = self.initial_game_state.to_dict()
-        
-        # Get balls per tube capacity
-        balls_per_tube = game_dict.get('balls_per_tube', 4)
-        
-        for tube_data in game_dict['tubes']:
-            tube_balls = []
-            # Sort balls by level_index to maintain correct order (bottom to top)
-            sorted_balls = sorted(tube_data['balls'], key=lambda b: b['level_index'])
+        try:
+            tubes = []
+            game_dict = self.initial_game_state.to_dict()
             
-            for ball in sorted_balls:
-                color_rgb = tuple(ball['color'])
-                tube_balls.append(color_rgb)
-            tubes.append(tube_balls)
-        
-        return GameState(tubes, balls_per_tube)
+            print(f"DEBUG: Converting game model with {len(game_dict.get('tubes', []))} tubes")
+            
+            # Get balls per tube capacity
+            balls_per_tube = game_dict.get('balls_per_tube', 4)
+            print(f"DEBUG: Balls per tube capacity: {balls_per_tube}")
+            
+            for i, tube_data in enumerate(game_dict['tubes']):
+                tube_balls = []
+                # Sort balls by level_index to maintain correct order (bottom to top)
+                sorted_balls = sorted(tube_data['balls'], key=lambda b: b['level_index'])
+                
+                for ball in sorted_balls:
+                    color_rgb = tuple(ball['color'])
+                    tube_balls.append(color_rgb)
+                tubes.append(tube_balls)
+                
+                print(f"DEBUG: Tube {i}: {len(tube_balls)} balls")
+            
+            if not tubes:
+                print("ERROR: No tubes found in game data")
+                return None
+            
+            return GameState(tubes, balls_per_tube)
+            
+        except Exception as e:
+            print(f"ERROR: Failed to convert game model: {e}")
+            return None
     
     def get_solution_stats(self) -> Dict:
         """Get statistics about the solving process"""
