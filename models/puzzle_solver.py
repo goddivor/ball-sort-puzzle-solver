@@ -117,8 +117,8 @@ class GameState:
             return True
         
         # Check if colors match (Ball Sort rule: can only place on same color)
-        source_color = self.tubes[from_tube][-1]  # Top ball from source
-        dest_color = self.tubes[to_tube][-1]      # Top ball from destination
+        source_color = self.tubes[from_tube][0]  # Top ball from source (index 0 = top)
+        dest_color = self.tubes[to_tube][0]      # Top ball from destination (index 0 = top)
         
         return source_color == dest_color
     
@@ -146,9 +146,9 @@ class GameState:
         new_state = GameState(self.tubes, self.max_balls_per_tube)
         
         if self._is_valid_move(from_tube, to_tube):
-            # Move only ONE ball (the top one)
-            ball = new_state.tubes[from_tube].pop()
-            new_state.tubes[to_tube].append(ball)
+            # Move only ONE ball (the top one - index 0)
+            ball = new_state.tubes[from_tube].pop(0)  # Take from top (index 0)
+            new_state.tubes[to_tube].insert(0, ball)  # Add to top (index 0)
         
         return new_state
     
@@ -283,7 +283,7 @@ class PuzzleSolver:
                 visited.add(new_state)
                 
                 # Create move object (single ball only)
-                ball_color = current_state.tubes[from_tube][-1]  # Top ball
+                ball_color = current_state.tubes[from_tube][0]  # Top ball (index 0)
                 move = Move(from_tube, to_tube, ball_color, 1)  # Always 1 ball
                 new_moves = moves + [move]
                 

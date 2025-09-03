@@ -323,11 +323,11 @@ class SolutionDisplay:
             to_tube = self.current_game_state.get_tube(to_tube_idx)
             
             if from_tube and to_tube and len(from_tube.balls) > 0:
-                # Ball Sort rule: Move only ONE ball (the top one)
-                ball = from_tube.balls.pop()  # Remove top ball from source
+                # Ball Sort rule: Move only ONE ball (the top one - index 0)
+                ball = from_tube.balls.pop(0)  # Remove top ball from source (index 0)
                 ball.tube_index = to_tube_idx
-                ball.level_index = len(to_tube.balls)
-                to_tube.balls.append(ball)  # Add to destination
+                ball.level_index = 0  # Top position in destination
+                to_tube.balls.insert(0, ball)  # Add to top of destination
                 
                 print(f"DEBUG: Moved 1 ball ({ball.color_name}) from tube {from_tube_idx} to tube {to_tube_idx}")
                 print(f"DEBUG: From tube now has {len(from_tube.balls)} balls")
@@ -345,11 +345,11 @@ class SolutionDisplay:
             source_tube = self.current_game_state.get_tube(original_from_tube_idx)
             
             if dest_tube and source_tube and len(dest_tube.balls) > 0:
-                # Move only ONE ball back (Ball Sort rule)
-                ball = dest_tube.balls.pop()  # Remove from destination
+                # Move only ONE ball back (Ball Sort rule) - from top (index 0)
+                ball = dest_tube.balls.pop(0)  # Remove from top of destination
                 ball.tube_index = original_from_tube_idx
-                ball.level_index = len(source_tube.balls)
-                source_tube.balls.append(ball)  # Add back to source
+                ball.level_index = 0  # Top position in source
+                source_tube.balls.insert(0, ball)  # Add back to top of source
                 
                 print(f"DEBUG: Reversed 1 ball ({ball.color_name}) from tube {original_to_tube_idx} back to tube {original_from_tube_idx}")
                 
