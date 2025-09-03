@@ -453,10 +453,25 @@ class PuzzleSolver:
         
         print(f"DEBUG: Empty tubes: {empty_tubes}, Colors: {colors}, Total tubes: {len(state.tubes)}")
         
-        # Very lenient tube check - just need some working space
-        if empty_tubes < 1 and colors > 1:
-            print("DEBUG: Need at least 1 empty tube for non-trivial puzzles")
-            return False
+        # More realistic tube check - Ball Sort puzzles can be solved even without empty tubes
+        # as long as there's potential for moves between tubes
+        if empty_tubes == 0 and colors > 1:
+            # Check if there's any possibility for useful moves
+            can_make_moves = False
+            for i, tube in enumerate(state.tubes):
+                if len(tube) < state.max_balls_per_tube:
+                    can_make_moves = True
+                    break
+                # Check if tube has mixed colors (can extract balls)
+                if len(tube) > 1 and len(set(tube)) > 1:
+                    can_make_moves = True
+                    break
+            
+            if not can_make_moves:
+                print("DEBUG: No empty tubes and no possible moves")
+                return False
+            else:
+                print("DEBUG: No empty tubes, but moves are still possible")
         
         return True
     

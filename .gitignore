@@ -173,3 +173,4 @@ Desktop.ini
 
 # Claude AI assistant files
 .claude/
+*-this-session-*.txt
